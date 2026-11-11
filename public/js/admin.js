@@ -5,16 +5,25 @@
 
 // ── ADMIN CREDENTIALS ──
 const SESSION_KEY = 'ff_admin_session';
-const TOKEN_KEY = 'ff_admin_token';
 
 // ── DATA HELPERS (Async) ──
 async function fetchAPI(endpoint, options = {}) {
   try {
-    const token = localStorage.getItem(TOKEN_KEY);
     const headers = { ...options.headers };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    // The browser will automatically attach HttpOnly cookies
     
-    const res = await fetch('/api' + endpoint, { ...options, headers });
+    const res = await fetch('/api' + endpoint, { 
+      ...options, 
+      headers,
+      credentials: 'include' // Important for sending cookies
+    });
+    
+    if (res.status === 401) {
+      // Token expired or invalid
+      logout(false);
+      return null;
+    }
+    
     return await res.json();
   } catch(e) {
     console.error('API Error:', e);
@@ -47,8 +56,6 @@ function showDashboard() {
   switchPage('overview');
 }
 
-let loginStep = 1;
-
 function initLogin() {
   document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -57,43 +64,51 @@ function initLogin() {
     const errorEl = document.getElementById('loginError');
     const submitBtn = document.getElementById('loginSubmitBtn');
 
-    submitBtn.textContent = 'Signing In...';
     submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing In...';
 
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
 
-      if (res.ok && data.success && data.token) {
+      if (res.ok && data.success) {
         localStorage.setItem(SESSION_KEY, 'active');
-        localStorage.setItem(TOKEN_KEY, data.token);
         errorEl.classList.remove('show');
         showDashboard();
       } else {
-        errorEl.textContent = data.error || '❌ Access denied.';
+        errorEl.textContent = data.error || 'Access denied. Invalid credentials.';
         errorEl.classList.add('show');
+        submitBtn.textContent = 'Sign In →';
       }
     } catch(err) {
-      errorEl.textContent = '❌ Error connecting to server.';
+      errorEl.textContent = 'Error connecting to server.';
       errorEl.classList.add('show');
-    } finally {
       submitBtn.textContent = 'Sign In →';
+    } finally {
       submitBtn.disabled = false;
     }
   });
 }
 
-function logout() {
+async function logout(callApi = true) {
+  if (callApi === true || callApi instanceof Event) {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' });
+    } catch(e) {}
+  }
   localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(TOKEN_KEY);
   showLogin();
-  document.getElementById('loginEmail').value = '';
+  const emailEl = document.getElementById('loginEmail');
+  if (emailEl) emailEl.value = '';
   const passEl = document.getElementById('loginPass');
   if (passEl) passEl.value = '';
+  const btn = document.getElementById('loginSubmitBtn');
+  if (btn) btn.textContent = 'Sign In →';
 }
 
 // ── SIDEBAR ──

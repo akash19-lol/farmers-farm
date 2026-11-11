@@ -554,54 +554,126 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
     return;
   }
 
-  const totalPrice = cart.reduce((sum, c) => sum + (c.price * c.qty), 0);
-
   const paymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
   const paymentMethod = paymentMethodRadio ? paymentMethodRadio.value : 'cod';
 
-  if (paymentMethod === 'online') {
-    showToast('ΓÜá∩╕Å Online Payment is currently being set up. Please choose Cash on Delivery.');
-    return;
-  }
-
   const btn = e.target.querySelector('button[type="submit"]');
-  btn.innerHTML = 'ΓÅ│ Placing Order...';
+  btn.innerHTML = 'Processing...';
   btn.disabled = true;
 
   try {
-    // Save order directly for COD
-    // Calculate discount for saving
     const baseTotal = cart.reduce((sum, c) => sum + (c.price * c.qty), 0);
     const discountAmount = appliedPromo ? (baseTotal * appliedPromo.discountPercentage) / 100 : 0;
-    const finalTotal = baseTotal - discountAmount;
+    const finalTotal = Math.round(baseTotal - discountAmount);
 
-    const order = {
-      id: 'ORD-' + Date.now().toString(36).toUpperCase(),
-      date: new Date().toLocaleString('en-IN'),
-      items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
-      subtotal: baseTotal,
-      promoCode: appliedPromo ? appliedPromo.promoCode : null,
-      discount: Math.round(discountAmount),
-      total: Math.round(finalTotal),
-      paymentMethod: 'COD',
-      paymentId: null,
-      customer: { name: customer.name, email: customer.email, phone: customer.phone },
-      shipping: { address, city, pin, lat, lng }
-    };
+    if (paymentMethod === 'online') {
+      // 1. Fetch Razorpay Key
+      const keyRes = await fetch('/api/razorpay-key');
+      const { key } = await keyRes.json();
+      if (!key) throw new Error('Razorpay is not configured on the server.');
 
-    await saveOrder(order);
-    cart = [];
-    saveCart(cart);
-    updateCartUI();
-    closeAddressModal();
-    showCheckoutSuccess(order);
+      // 2. Create Order on Backend
+      const orderRes = await fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: finalTotal })
+      });
+      const orderData = await orderRes.json();
+      if (!orderData.id) throw new Error('Failed to create Razorpay order');
+
+      // 3. Open Razorpay Checkout
+      const options = {
+        key: key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Farmers Farm",
+        description: "Fresh Farm Products",
+        order_id: orderData.id,
+        prefill: {
+          name: customer.name,
+          email: customer.email,
+          contact: customer.phone
+        },
+        theme: { color: "#2D5A27" },
+        handler: async function (response) {
+          // 4. Verify Payment on Backend
+          btn.innerHTML = 'Verifying Payment...';
+          const verifyRes = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(response)
+          });
+          const verifyData = await verifyRes.json();
+          
+          if (verifyData.success) {
+            // 5. Place Order in Database
+            const order = {
+              id: 'ORD-' + Date.now().toString(36).toUpperCase(),
+              date: new Date().toLocaleString('en-IN'),
+              items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
+              subtotal: baseTotal,
+              promoCode: appliedPromo ? appliedPromo.promoCode : null,
+              discount: Math.round(discountAmount),
+              total: Math.round(finalTotal),
+              paymentMethod: 'Online Payment',
+              paymentId: response.razorpay_payment_id,
+              customer: { name: customer.name, email: customer.email, phone: customer.phone },
+              shipping: { address, city, pin, lat, lng }
+            };
+
+            await saveOrder(order);
+            cart = [];
+            saveCart(cart);
+            updateCartUI();
+            closeAddressModal();
+            showCheckoutSuccess(order);
+          } else {
+            showToast('Payment verification failed.');
+            btn.innerHTML = 'Place Order';
+            btn.disabled = false;
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        showToast('Payment Failed: ' + response.error.description);
+        btn.innerHTML = 'Place Order';
+        btn.disabled = false;
+      });
+      rzp.open();
+
+    } else {
+      // COD Flow
+      const order = {
+        id: 'ORD-' + Date.now().toString(36).toUpperCase(),
+        date: new Date().toLocaleString('en-IN'),
+        items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
+        subtotal: baseTotal,
+        promoCode: appliedPromo ? appliedPromo.promoCode : null,
+        discount: Math.round(discountAmount),
+        total: Math.round(finalTotal),
+        paymentMethod: 'COD',
+        paymentId: null,
+        customer: { name: customer.name, email: customer.email, phone: customer.phone },
+        shipping: { address, city, pin, lat, lng }
+      };
+
+      await saveOrder(order);
+      cart = [];
+      saveCart(cart);
+      updateCartUI();
+      closeAddressModal();
+      showCheckoutSuccess(order);
+    }
   } catch (err) {
     console.error(err);
-    showToast('ΓÜá∩╕Å ' + (err.message || 'Error placing order. Please try again.'));
-    btn.innerHTML = '≡ƒôª Place Order ΓåÆ';
+    showToast(err.message || 'Error processing order. Please try again.');
+    btn.innerHTML = 'Place Order';
     btn.disabled = false;
   }
 });
+
 
 function showCheckoutSuccess(order) {
   const overlay = document.getElementById('checkoutOverlay');

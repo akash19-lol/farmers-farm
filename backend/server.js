@@ -4,16 +4,19 @@ const path = require('path');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const { db } = require('./firebase');
 dotenv.config();
 
 const app = express();
+app.use(cookieParser());
 const PORT = process.env.PORT || 3000;
 
 // ── CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5000',
+  `http://localhost:${PORT}`, // Dynamically allow whatever port the app runs on
   'https://farmersfarm.in',
   'https://www.farmersfarm.in'
 ];
@@ -21,10 +24,13 @@ if (process.env.RAILWAY_STATIC_URL) allowedOrigins.push(`https://${process.env.R
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('railway.app')) {
+    if (!origin || 
+        allowedOrigins.includes(origin) || 
+        origin.endsWith('railway.app') || 
+        (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1')))) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true

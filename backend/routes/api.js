@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const Razorpay = require('razorpay');
 const nodemailer = require('nodemailer');
 const path = require('path');
@@ -87,15 +90,40 @@ if (!process.env.ADMIN_TOKEN_SECRET) {
 const ADMIN_TOKEN_SECRET = process.env.ADMIN_TOKEN_SECRET || 'ff_super_secret_token_2026';
 
 // --- ADMIN LOGIN & MIDDLEWARE ---
-const verifyAdmin = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const expectedToken = ADMIN_TOKEN_SECRET;
-  if (authHeader === `Bearer ${expectedToken}`) {
+const verifyAdmin = async (req, res, next) => {
+  const token = req.cookies.adminToken;
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized access. No token provided.' });
+  }
+  try {
+    const decoded = jwt.verify(token, ADMIN_TOKEN_SECRET);
+    req.admin = decoded;
+    
+    // Audit Log for Mutations
+    if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+      try {
+        await db.collection('admin_audit_logs').add({
+          action: `${req.method} ${req.originalUrl}`,
+          ip: req.ip,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          adminEmail: req.admin.email
+        });
+      } catch (err) {
+        console.error('Audit Log Error:', err);
+      }
+    }
+    
     next();
-  } else {
-    res.status(401).json({ error: 'Unauthorized access' });
+  } catch (err) {
+    res.status(401).json({ error: 'Unauthorized access. Invalid or expired token.' });
   }
 };
+
+const adminLoginLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 requests per IP
+  message: { error: 'Too many login attempts from this IP, please try again after an hour' }
+});
 
 // --- ADMIN LOGIN (Email + Password) ---
 const ADMIN_CREDENTIALS = [
@@ -103,41 +131,38 @@ const ADMIN_CREDENTIALS = [
   { email: (process.env.ADMIN_EMAIL_2 || '').toLowerCase(), pass: process.env.ADMIN_PASS_2 },
 ];
 
-router.post('/admin/login', (req, res) => {
+router.post('/admin/login', adminLoginLimiter, async (req, res) => {
   const { email, password } = req.body;
   const inputEmail = (email || '').trim().toLowerCase();
   const inputPass = (password || '').trim();
 
   const match = ADMIN_CREDENTIALS.find(c => c.email && c.email === inputEmail && c.pass && c.pass === inputPass);
 
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[DEV ONLY] Login Attempt for email: '${inputEmail}'`);
+  }
+
   if (match) {
-    const token = ADMIN_TOKEN_SECRET;
-    res.json({ success: true, token });
+    // Direct JWT login — no OTP step
+    const token = jwt.sign({ email: inputEmail, role: 'admin' }, ADMIN_TOKEN_SECRET, { expiresIn: '12h' });
+
+    res.cookie('adminToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 12 * 60 * 60 * 1000 // 12 hours
+    });
+
+    console.log(`✅ Admin login successful: ${inputEmail}`);
+    res.json({ success: true });
   } else {
     res.status(401).json({ error: 'Access denied. Invalid email or password.' });
   }
 });
 
-router.post('/admin/verify-otp', (req, res) => {
-  const { email, otp } = req.body;
-  const storedData = otpStorage.get(email);
-
-  if (!storedData) {
-    return res.status(400).json({ error: 'No OTP requested or session expired.' });
-  }
-
-  if (Date.now() > storedData.expiresAt) {
-    otpStorage.delete(email);
-    return res.status(400).json({ error: 'OTP has expired. Please login again.' });
-  }
-
-  if (storedData.otp === otp) {
-    otpStorage.delete(email);
-    const token = ADMIN_TOKEN_SECRET;
-    res.json({ success: true, token });
-  } else {
-    res.status(401).json({ error: 'Invalid OTP.' });
-  }
+router.post('/admin/logout', (req, res) => {
+  res.clearCookie('adminToken');
+  res.json({ success: true });
 });
 
 // --- PRODUCTS ---
@@ -875,6 +900,58 @@ router.post('/payment/verify', (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+// --- RAZORPAY PAYMENT ENDPOINTS ---
+router.post('/create-razorpay-order', async (req, res) => {
+  try {
+    const { amount, receipt } = req.body;
+    
+    if (!razorpay) {
+      return res.status(500).json({ error: 'Razorpay is not configured on the server.' });
+    }
+
+    const options = {
+      amount: amount * 100, // amount in the smallest currency unit (paise)
+      currency: "INR",
+      receipt: receipt || `rcpt_${Date.now()}`
+    };
+
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (error) {
+    console.error('Error creating Razorpay order:', error);
+    res.status(500).json({ error: 'Could not create payment order.' });
+  }
+});
+
+router.get('/razorpay-key', (req, res) => {
+  res.json({ key: process.env.RAZORPAY_KEY_ID });
+});
+
+router.post('/verify-payment', (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!secret) {
+      return res.status(500).json({ error: 'Razorpay secret key missing.' });
+    }
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(body.toString())
+      .digest('hex');
+
+    if (expectedSignature === razorpay_signature) {
+      res.json({ success: true, message: 'Payment verified successfully.' });
+    } else {
+      res.status(400).json({ success: false, error: 'Invalid signature.' });
+    }
+  } catch (error) {
+    console.error('Error verifying Razorpay payment:', error);
+    res.status(500).json({ error: 'Payment verification failed.' });
   }
 });
 

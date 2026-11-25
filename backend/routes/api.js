@@ -835,18 +835,31 @@ router.post('/customers/request-otp', async (req, res) => {
   console.log(`🔑 [CUSTOMER OTP] For '${email}': ${otp}`);
 
   try {
-    // Send email in the background without awaiting it to speed up UI response
-    transporter.sendMail({
+    await transporter.sendMail({
       from: `"Farmers Farm" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Your Login OTP for Farmers Farm',
-      html: `<h3>Welcome to Farmers Farm!</h3><p>Your OTP for login is: <strong style="font-size:24px;">${otp}</strong></p><p>This OTP is valid for 10 minutes.</p>`
-    }).catch(error => console.error('Background Error sending OTP:', error));
+      subject: `${otp} is your Farmers Farm verification code`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0C160F; color: #FAF6ED; border-radius: 12px; border: 1px solid rgba(212,160,23,0.3); text-align: center;">
+          <h2 style="color: #D4A017; font-size: 24px; margin: 0 0 8px; letter-spacing: 1.5px; text-transform: uppercase;">Farmers Farm</h2>
+          <p style="font-size: 13px; color: #A3B899; margin: 0 0 24px; text-transform: uppercase; letter-spacing: 1px;">Est. 2020 · Pure Harvest</p>
+          <div style="border-top: 1px solid rgba(212,160,23,0.2); margin-bottom: 24px;"></div>
+          <p style="font-size: 15px; color: #E2DACB; line-height: 1.5; margin: 0 0 20px;">Use the verification code below to securely sign in to your Farmers Farm account:</p>
+          <div style="background: rgba(212,160,23,0.08); border: 2px dashed rgba(212,160,23,0.5); border-radius: 10px; padding: 18px 20px; display: inline-block; min-width: 220px; margin-bottom: 24px;">
+            <span style="font-size: 34px; font-weight: 700; letter-spacing: 8px; color: #F0C040; font-family: monospace;">${otp}</span>
+          </div>
+          <p style="font-size: 13px; color: #A3B899; margin: 0 0 16px;">This OTP is valid for <strong>10 minutes</strong>. Never share this code with anyone.</p>
+          <div style="border-top: 1px solid rgba(212,160,23,0.2); margin: 24px 0 16px;"></div>
+          <p style="font-size: 11px; color: #7A8D74; margin: 0;">Farm to Cup · 100% Natural Organic Tea · If you didn't request this, please ignore.</p>
+        </div>
+      `
+    });
     
-    res.json({ success: true, message: 'OTP sent successfully', otp: otp });
+    // Security: Do NOT return the OTP in the API response
+    res.json({ success: true, message: 'OTP sent to your email successfully' });
   } catch (error) {
     console.error('Error in request OTP:', error);
-    res.status(500).json({ error: 'Failed to request OTP' });
+    res.status(500).json({ error: 'Failed to send OTP email. Please ensure your email address is correct.' });
   }
 });
 

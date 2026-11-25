@@ -1041,13 +1041,12 @@ function initCustomerAuth() {
         document.getElementById('otpStep1').style.display = 'none';
         document.getElementById('otpStep2').style.display = 'block';
         document.getElementById('authError')?.classList.remove('show');
-        if (data.otp) {
-          const otpInput = document.getElementById('clOtp');
-          if (otpInput) otpInput.value = data.otp;
-          showToast(`✅ OTP: ${data.otp} (Sent & Auto-filled!)`);
-        } else {
-          showToast('OTP sent to your email!');
+        const otpInput = document.getElementById('clOtp');
+        if (otpInput) {
+          otpInput.value = '';
+          otpInput.focus();
         }
+        showToast('📩 OTP sent to your email! Please check your inbox.');
       } else {
         showAuthError(data.error || 'Failed to send OTP.');
       }

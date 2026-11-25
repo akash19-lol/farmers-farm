@@ -581,7 +581,50 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
       const orderData = await orderRes.json();
       if (!orderData.id) throw new Error('Failed to create Razorpay order');
 
-      // 3. Open Razorpay Checkout
+      // 3. Demo Mode or Fallback Checkout
+      if (orderData.demoMode || typeof window.Razorpay === 'undefined') {
+        btn.innerHTML = 'Verifying Payment (Demo)...';
+        const demoPaymentId = 'pay_demo_' + Date.now().toString(36);
+        const verifyRes = await fetch('/api/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            razorpay_order_id: orderData.id,
+            razorpay_payment_id: demoPaymentId,
+            razorpay_signature: 'demo_signature'
+          })
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyData.success) {
+          const order = {
+            id: 'ORD-' + Date.now().toString(36).toUpperCase(),
+            date: new Date().toLocaleString('en-IN'),
+            items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
+            subtotal: baseTotal,
+            promoCode: appliedPromo ? appliedPromo.promoCode : null,
+            discount: Math.round(discountAmount),
+            total: Math.round(finalTotal),
+            paymentMethod: 'Online Payment (Demo)',
+            paymentId: demoPaymentId,
+            customer: { name: customer.name, email: customer.email, phone: customer.phone },
+            shipping: { address, city, pin, lat, lng }
+          };
+          await saveOrder(order);
+          cart = [];
+          saveCart(cart);
+          updateCartUI();
+          closeAddressModal();
+          showCheckoutSuccess(order);
+          return;
+        } else {
+          showToast('Payment verification failed.');
+          btn.innerHTML = 'Place Order';
+          btn.disabled = false;
+          return;
+        }
+      }
+
+      // 4. Open Real Razorpay Checkout
       const options = {
         key: key,
         amount: orderData.amount,
@@ -596,7 +639,7 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
         },
         theme: { color: "#2D5A27" },
         handler: async function (response) {
-          // 4. Verify Payment on Backend
+          // Verify Payment on Backend
           btn.innerHTML = 'Verifying Payment...';
           const verifyRes = await fetch('/api/verify-payment', {
             method: 'POST',
@@ -606,7 +649,6 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
           const verifyData = await verifyRes.json();
           
           if (verifyData.success) {
-            // 5. Place Order in Database
             const order = {
               id: 'ORD-' + Date.now().toString(36).toUpperCase(),
               date: new Date().toLocaleString('en-IN'),

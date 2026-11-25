@@ -5,6 +5,7 @@
 
 // ── ADMIN CREDENTIALS ──
 const SESSION_KEY = 'ff_admin_session';
+const TOKEN_KEY = 'ff_admin_token';
 
 // ── DATA HELPERS (Async) ──
 async function fetchAPI(endpoint, options = {}) {
@@ -78,6 +79,7 @@ function initLogin() {
 
       if (res.ok && data.success) {
         localStorage.setItem(SESSION_KEY, 'active');
+        if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
         errorEl.classList.remove('show');
         showDashboard();
       } else {
@@ -102,6 +104,7 @@ async function logout(callApi = true) {
     } catch(e) {}
   }
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(TOKEN_KEY);
   showLogin();
   const emailEl = document.getElementById('loginEmail');
   if (emailEl) emailEl.value = '';
@@ -358,18 +361,23 @@ async function saveProduct(e) {
     const url = editProductId ? `/api/products/${editProductId}` : '/api/products';
     const method = editProductId ? 'PUT' : 'POST';
     
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const res = await fetch(url, {
       method: method,
-      headers: { 'Authorization': `Bearer ${token}` },
+      credentials: 'include',
+      headers: headers,
       body: formData
     });
     
-    if (res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
       closeProductModal();
       await renderProductsTable();
       await loadDashboardData();
     } else {
-      alert('Failed to save product');
+      alert(data.error || 'Failed to save product');
     }
   } catch(err) {
     console.error(err);
@@ -462,6 +470,7 @@ async function updateOrderStatus(orderId, newStatus) {
   try {
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch('/api/orders/' + orderId + '/status', {
+      credentials: 'include',
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -556,6 +565,7 @@ async function loadPromos() {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch('/api/admin/promos', {
+      credentials: 'include',
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to load promos');
@@ -656,6 +666,7 @@ async function updateOrderStatus(orderId, newStatus) {
   try {
     const token = localStorage.getItem(TOKEN_KEY);
     const res = await fetch('/api/orders/' + orderId + '/status', {
+      credentials: 'include',
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -750,6 +761,7 @@ async function loadPromos() {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch('/api/admin/promos', {
+      credentials: 'include',
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to load promos');
@@ -786,6 +798,7 @@ document.getElementById('promoForm')?.addEventListener('submit', async (e) => {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch('/api/admin/promos', {
+      credentials: 'include',
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -809,6 +822,7 @@ async function deletePromo(id) {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch(`/api/admin/promos/${id}`, {
+      credentials: 'include',
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -836,6 +850,7 @@ async function loadReviews() {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch('/api/admin/reviews', {
+      credentials: 'include',
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to load reviews');
@@ -872,6 +887,7 @@ async function deleteReview(id) {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch(`/api/admin/reviews/${id}`, {
+      credentials: 'include',
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -940,6 +956,7 @@ document.getElementById('blogForm')?.addEventListener('submit', async (e) => {
 
   try {
     const res = await fetch('/api/admin/blogs', {
+      credentials: 'include',
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -962,6 +979,7 @@ async function deleteBlog(id) {
   const token = localStorage.getItem('ff_admin_token');
   try {
     const res = await fetch(`/api/admin/blogs/${id}`, {
+      credentials: 'include',
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });

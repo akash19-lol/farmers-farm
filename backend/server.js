@@ -59,6 +59,14 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+// Routes for cart and login pages
+app.get('/cart', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/cart.html'));
+});
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/login.html'));
+});
+
 // SSR Route for Blog Posts (SEO)
 app.get('/blog/:slug', async (req, res) => {
   const { slug } = req.params;
@@ -94,7 +102,7 @@ app.get('/blog/:slug', async (req, res) => {
         ${blog.imageUrl ? `<img src="${blog.imageUrl}" class="blog-ssr-image" alt="${blog.title}">` : ''}
         <div class="blog-ssr-body">${blog.content}</div>
       </div>
-      <script>window.INITIAL_BLOG_DATA = ${JSON.stringify(blog)};</script>
+      <script>window.INITIAL_BLOG_DATA = ${JSON.stringify(blog).replace(/</g, '\\u003c')};</script>
     `);
     
     res.send(html);
@@ -118,7 +126,7 @@ app.use((req, res, next) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.message);
-  if (err.message === 'Not allowed by CORS') {
+  if (err.message && err.message.startsWith('Not allowed by CORS')) {
     return res.status(403).json({ error: 'CORS: Origin not allowed.' });
   }
   res.status(500).json({ error: 'Internal server error.' });

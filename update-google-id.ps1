@@ -1,4 +1,4 @@
-﻿# =====================================================
+# =====================================================
 # Farmers Farm - Google Client ID Update Script
 # =====================================================
 # Usage: .\update-google-id.ps1 -ClientId "YOUR_ACTUAL_CLIENT_ID"

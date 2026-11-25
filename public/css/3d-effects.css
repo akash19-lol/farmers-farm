@@ -10,40 +10,54 @@
   --neon-green: rgba(90,148,112,0.6);
 }
 
-/* ── 2. ENHANCED NAV – Ivory & Gold Glass (Light + Dark Theme Safe) ── */
+/* ── 2. ENHANCED NAV – Luxury Dark Botanical Glass (Default) ── */
 nav {
-  background: rgba(247,240,224,0.80) !important;
+  background: rgba(12,20,14,0.86) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(212,160,23,0.25) !important;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.5),
+    0 1px 0 rgba(255,255,255,0.06) inset !important;
+}
+
+nav.scrolled {
+  background: rgba(10,17,12,0.96) !important;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.65),
+    0 1px 0 rgba(255,255,255,0.08) inset !important;
+}
+
+.nav-logo span:first-child,
+#themeToggleBtn,
+#navUserIcon {
+  color: var(--gold-bright) !important;
+}
+
+.nav-logo span:last-child {
+  color: var(--mist) !important;
+}
+
+[data-theme="light"] nav {
+  background: rgba(247,240,224,0.80) !important;
   border-bottom: 1px solid rgba(184,134,11,0.28) !important;
   box-shadow:
     0 8px 32px rgba(44,74,53,0.10),
     0 1px 0 rgba(255,255,255,0.65) inset !important;
 }
 
-nav.scrolled {
+[data-theme="light"] nav.scrolled {
   background: rgba(247,240,224,0.94) !important;
-  box-shadow:
-    0 12px 40px rgba(44,74,53,0.16),
-    0 1px 0 rgba(255,255,255,0.75) inset !important;
 }
 
-[data-theme="dark"] nav {
-  background: rgba(15,24,13,0.82) !important;
-  border-bottom: 1px solid rgba(212,160,23,0.25) !important;
-  box-shadow:
-    0 8px 32px rgba(0,0,0,0.45),
-    0 1px 0 rgba(255,255,255,0.06) inset !important;
+[data-theme="light"] .nav-logo span:first-child,
+[data-theme="light"] #themeToggleBtn,
+[data-theme="light"] #navUserIcon {
+  color: var(--green-deep) !important;
 }
 
-[data-theme="dark"] .nav-logo span:first-child,
-[data-theme="dark"] #themeToggleBtn,
-[data-theme="dark"] #navUserIcon {
-  color: var(--gold-bright) !important;
-}
-
-[data-theme="dark"] .nav-logo span:last-child {
-  color: var(--text-muted) !important;
+[data-theme="light"] .nav-logo span:last-child {
+  color: var(--earth) !important;
 }
 
 /* Nav logo 3D text depth */
@@ -265,8 +279,8 @@ nav.scrolled {
   position: absolute;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(255,253,245,0.92);
-  color: var(--green-deep);
+  background: rgba(20,35,24,0.92);
+  color: var(--gold-light);
   border: 1px solid rgba(184,134,11,0.4);
   font-size: 11px;
   font-weight: 700;
@@ -334,8 +348,7 @@ nav.scrolled {
     transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94),
     box-shadow 0.4s !important;
   box-shadow:
-    0 6px 24px rgba(44,74,53,0.09),
-    0 1px 0 rgba(255,255,255,0.8) inset !important;
+    0 6px 24px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.08) inset !important;
   will-change: transform;
 }
 
@@ -360,7 +373,7 @@ nav.scrolled {
 
 .packet-card:hover {
   box-shadow:
-    0 28px 65px rgba(44,74,53,0.24),
+    0 28px 65px rgba(0,0,0,0.55),
     0 0 0 1px rgba(184,134,11,0.45),
     0 0 30px rgba(184,134,11,0.16),
     0 1px 0 rgba(255,255,255,0.8) inset !important;
@@ -374,7 +387,7 @@ nav.scrolled {
 }
 .packet-card.popular:hover {
   box-shadow:
-    0 30px 70px rgba(44,74,53,0.28),
+    0 30px 70px rgba(0,0,0,0.6),
     0 0 0 2px var(--gold),
     0 0 40px rgba(201,168,76,0.42) !important;
 }

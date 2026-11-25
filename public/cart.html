@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,6 +23,7 @@
     <li><a href="/">Home</a></li>
   </ul>
   <div class="nav-right">
+    <button id="themeToggleBtn" title="Toggle Theme" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--gold-bright); margin-right:12px;">☀️</button>
     <div class="nav-user" id="navUserBtn" style="position:relative; cursor:pointer;" title="Account" onclick="event.stopPropagation(); toggleUserDropdown();">
       <div id="navUserIcon" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:20px; color:var(--green-deep);">👤</div>
       <div class="user-dropdown" id="userDropdown" onclick="event.stopPropagation();">
@@ -48,16 +49,16 @@
     <p>Review your items and proceed to checkout.</p>
   </div>
   
-  <div class="cart-page-container" style="max-width: 800px; margin: 0 auto; background: var(--white); border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.05); border: 1px solid rgba(201,168,76,0.15);">
+  <div class="cart-page-container" style="max-width: 800px; margin: 0 auto; background: var(--cream-card); border-radius: 20px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.45); border: 1px solid rgba(212,160,23,0.25);">
     <div class="cart-items" id="cartItems" style="max-height: none; padding: 30px;">
       <div class="cart-empty"><span class="cart-empty-icon">🛒</span><p>Your cart is empty</p></div>
     </div>
     
-    <div class="cart-footer" style="padding: 30px; background: rgba(247,242,232,0.5);">
+    <div class="cart-footer" style="padding: 30px; background: rgba(10,18,12,0.85); border-top: 1px solid rgba(212,160,23,0.18);">
       <div class="promo-section" style="margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 24px; max-width: 300px;">
         <div style="display:flex; gap:8px;">
-          <input type="text" id="promoInputCart" placeholder="Promo code" style="flex:1; padding:10px; border-radius:6px; border:1px solid rgba(0,0,0,0.1); background:#fff; text-transform:uppercase;">
-          <button id="applyPromoBtnCart" style="padding:0 16px; border-radius:6px; border:none; background:var(--gold); color:#111; font-weight:600; cursor:pointer;">Apply</button>
+          <input type="text" id="promoInputCart" placeholder="Promo code" style="flex:1; padding:10px; border-radius:6px; border:1px solid rgba(212,160,23,0.25); background:rgba(12,20,14,0.8); color:#FAF6ED; text-transform:uppercase;">
+          <button id="applyPromoBtnCart" style="padding:0 16px; border-radius:6px; border:none; background:var(--gold); color:#0C140E; font-weight:700; cursor:pointer;">Apply</button>
         </div>
         <div id="promoMessageCart" style="font-size:12px; margin-top:6px; min-height:15px;"></div>
       </div>
@@ -298,6 +299,8 @@
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){for(let r of rs)r.unregister();});}if('caches' in window){caches.keys().then(function(ns){for(let n of ns)caches.delete(n);});}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+<script src="js/effects3d.js?v=1"></script>
 <script src="js/app.js?v=10"></script>
 <script>
   // Ensure the cart UI is updated correctly on load

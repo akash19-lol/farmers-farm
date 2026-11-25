@@ -137,11 +137,22 @@ window.addEventListener('load', () => {
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
-  // Theme Toggle
-  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
-  });
+  // Theme Toggle: default to dark
+  const savedTheme = localStorage.getItem('ff_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  if (themeToggleBtn) {
+    themeToggleBtn.innerHTML = savedTheme === 'light' ? '🌙' : '☀️';
+    themeToggleBtn.setAttribute('title', savedTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode');
+    themeToggleBtn.addEventListener('click', () => {
+      const active = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = active === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('ff_theme', next);
+      themeToggleBtn.innerHTML = next === 'light' ? '🌙' : '☀️';
+      themeToggleBtn.setAttribute('title', next === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode');
+    });
+  }
 
   const leafBg = document.getElementById('leafBg');
   if (leafBg) {

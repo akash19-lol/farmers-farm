@@ -1224,7 +1224,7 @@ async function initGoogleSignIn() {
         window.google.accounts.id.renderButton(container, {
           type: 'standard',
           shape: 'rectangular',
-          theme: 'outline',
+          theme: 'filled_black',
           text: 'continue_with',
           size: 'large',
           logo_alignment: 'center',
@@ -1243,11 +1243,11 @@ async function initGoogleSignIn() {
       // Render sleek Google Sign-In button with actionable setup prompt if Client ID is missing in .env
       container.innerHTML = `
         <button type="button" id="googleSetupFallbackBtn" style="
-          display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-          width: 100%; max-width: 340px; padding: 11px 16px;
-          background: #ffffff; color: #3c4043; border: 1px solid #dadce0; border-radius: 6px;
-          font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: background 0.2s, box-shadow 0.2s;
+          display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+          width: 100%; max-width: 340px; padding: 12px 16px;
+          background: rgba(18, 30, 21, 0.9); color: #FAF6ED; border: 1px solid rgba(212, 160, 23, 0.35); border-radius: 8px;
+          font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: all 0.3s ease;
         ">
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>

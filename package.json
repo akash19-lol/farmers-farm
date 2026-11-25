@@ -1,10 +1,10 @@
 {
-  "name": "farmers-farm-root",
+  "name": "farmers-farm",
   "version": "1.0.0",
   "scripts": {
-    "start": "cd backend && npm start",
-    "dev": "cd backend && node server.js",
-    "install-deps": "cd backend && npm install"
+    "build": "cd backend && npm install",
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && node server.js"
   },
   "dependencies": {
     "acorn": "^8.17.0"

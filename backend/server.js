@@ -31,11 +31,13 @@ const allowedOrigins = [
   'https://www.farmersfarm.in'
 ];
 if (process.env.RAILWAY_STATIC_URL) allowedOrigins.push(`https://${process.env.RAILWAY_STATIC_URL}`);
+if (process.env.RENDER_EXTERNAL_URL) allowedOrigins.push(process.env.RENDER_EXTERNAL_URL);
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || 
         allowedOrigins.includes(origin) || 
+        origin.endsWith('.onrender.com') ||
         (origin.endsWith('.railway.app') && origin.includes('farmers')) || 
         (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1')))) {
       callback(null, true);

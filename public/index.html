@@ -92,6 +92,7 @@
 <!-- HERO -->
 <section class="hero" id="home">
   <div class="hero-grid"></div>
+  <div class="hero-3d-rings"><div class="hero-ring"></div><div class="hero-ring hero-ring-2"></div></div>
   <canvas id="heroCanvas"></canvas>
   <div class="leaf-bg" id="leafBg"></div>
   <div class="hero-inner">
@@ -112,7 +113,12 @@
   <div class="about-grid">
     <div class="about-visual reveal-left">
       <div class="about-visual-inner">
-        <span class="big-leaf">🍵</span>
+        <div class="showcase-3d-stage">
+          <div class="showcase-halo"></div>
+          <img src="/images/pouch.png" alt="7 TEA AM Pouch" class="showcase-pouch">
+          <span class="showcase-pill showcase-pill-1">🌿 7 Pure Herbs</span>
+          <span class="showcase-pill showcase-pill-2">🍯 Natural Gud</span>
+        </div>
         <p>"Wake up to nature's finest."</p>
       </div>
     </div>
@@ -354,35 +360,31 @@
     </div>
     <div class="auth-error" id="authError"></div>
     <!-- LOGIN -->
-    <form class="auth-form active" id="loginFormContainer">
-      <div id="otpStep1">
-        <div class="auth-field"><label>Email</label><input type="email" id="clEmail" placeholder="your@email.com" required></div>
-        <button type="button" class="auth-btn" id="sendOtpBtn">Send OTP →</button>
+    <form class="auth-form active" id="loginFormContainer" novalidate>
+      <div id="otpLoginMode">
+        <div id="otpStep1">
+          <div class="auth-field"><label>Email</label><input type="email" id="clEmail" placeholder="your@email.com"></div>
+          <button type="button" class="auth-btn" id="sendOtpBtn">Send OTP →</button>
+        </div>
+        <div id="otpStep2" style="display:none;">
+          <div class="auth-field"><label>Enter OTP</label><input type="text" id="clOtp" placeholder="6-digit code"></div>
+          <button type="submit" class="auth-btn" id="customerLoginForm">Verify OTP & Login</button>
+          <button type="button" id="changeOtpEmailBtn" style="background:none;border:none;color:var(--gold);font-size:12px;margin-top:8px;cursor:pointer;display:block;width:100%;text-align:center;">← Change Email</button>
+        </div>
       </div>
-      <div id="otpStep2" style="display:none;">
-        <div class="auth-field"><label>Enter OTP</label><input type="text" id="clOtp" placeholder="6-digit code"></div>
-        <button type="submit" class="auth-btn" id="customerLoginForm">Verify OTP & Login</button>
+
+      <div id="passwordLoginMode" style="display:none;">
+        <div class="auth-field"><label>Email</label><input type="email" id="clPassEmail" placeholder="your@email.com"></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="clPass" placeholder="Enter password"></div>
+        <button type="submit" class="auth-btn" id="passwordLoginBtn">Sign In →</button>
       </div>
+
+      <button type="button" id="toggleLoginModeBtn" style="background:none;border:none;color:var(--gold);font-size:12px;margin:10px auto 0;cursor:pointer;display:block;text-decoration:underline;">Or login with Password instead</button>
       
-      <div style="text-align: center; margin: 15px 0; color: var(--mist);">OR</div>
+      <div style="text-align: center; margin: 14px 0; color: var(--mist); font-size: 12px;">OR</div>
       
-      <!-- Google Sign In Button -->
-      <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID_HERE"
-           data-context="use"
-           data-ux_mode="popup"
-           data-callback="handleGoogleLogin"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin"
-           data-type="standard"
-           data-shape="rectangular"
-           data-theme="outline"
-           data-text="continue_with"
-           data-size="large"
-           data-logo_alignment="center"
-           style="display: flex; justify-content: center; margin-bottom: 10px;">
-      </div>
+      <!-- Dynamic Google Sign In Button -->
+      <div id="googleSignInContainer" style="display: flex; justify-content: center; margin-bottom: 10px;"></div>
     </form>
     <!-- SIGNUP -->
     <form class="auth-form" id="signupFormContainer">
@@ -594,32 +596,7 @@
       document.querySelectorAll('.reveal').forEach(el => el.setAttribute('data-aos', 'fade-up'));
       document.querySelectorAll('.reveal-left').forEach(el => el.setAttribute('data-aos', 'fade-right'));
       document.querySelectorAll('.reveal-right').forEach(el => el.setAttribute('data-aos', 'fade-left'));
-      if (typeof AOS !== 'undefined') AOS.init({ duration: 800, once: true, offset: 100 });
-      
-      // Initialize 3D tilt effects
-      if (typeof VanillaTilt !== 'undefined') {
-        VanillaTilt.init(document.querySelectorAll(".ing-card, .packet-card"), {
-          max: 15,
-          speed: 400,
-          glare: true,
-          "max-glare": 0.2,
-        });
-        
-        // Use MutationObserver to initialize tilt on dynamically added packet-cards (shop)
-        const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            if (mutation.addedNodes.length) {
-              mutation.addedNodes.forEach((node) => {
-                if (node.classList && node.classList.contains('packet-card')) {
-                  VanillaTilt.init(node, { max: 15, speed: 400, glare: true, "max-glare": 0.2 });
-                }
-              });
-            }
-          });
-        });
-        const packetsGrid = document.getElementById('packetsGrid');
-        if (packetsGrid) observer.observe(packetsGrid, { childList: true });
-      }
+      if (typeof AOS !== 'undefined') AOS.init({ duration: 800, once: true, offset: 80 });
     } catch (err) {
       console.error('Animation Init Error:', err);
     }

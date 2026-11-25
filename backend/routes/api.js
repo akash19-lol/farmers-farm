@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { OAuth2Client } = require('google-auth-library');
+const bcrypt = require('bcryptjs');
 const cloudinary = require('cloudinary').v2;
 
 if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -43,9 +44,26 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Google Auth Setup
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+// Google Auth Setup (dynamically reads env so runtime updates work cleanly)
+function getGoogleClientId() {
+  const id = (process.env.GOOGLE_CLIENT_ID || '').trim();
+  if (!id || id === 'YOUR_GOOGLE_CLIENT_ID_HERE') return '';
+  return id;
+}
+
+function sanitizeCustomer(customer) {
+  if (!customer) return customer;
+  const { password, ...safe } = customer;
+  return safe;
+}
+
+router.get('/auth/config', (req, res) => {
+  const googleClientId = getGoogleClientId();
+  res.json({
+    googleClientId,
+    googleConfigured: Boolean(googleClientId)
+  });
+});
 
 // --- EMAIL NOTIFICATION SERVICE ---
 const sendOrderEmail = async (toEmail, subject, text) => {
@@ -560,6 +578,7 @@ router.post('/products/:id/reviews', reviewUpload.single('photo'), async (req, r
     };
 
     if (req.file) {
+      let uploaded = false;
       try {
         const result = await new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream({ folder: 'farmers-farm/reviews' }, (error, result) => {
@@ -568,10 +587,25 @@ router.post('/products/:id/reviews', reviewUpload.single('photo'), async (req, r
           });
           stream.end(req.file.buffer);
         });
-        reviewData.photoUrl = result.secure_url;
+        if (result && result.secure_url) {
+          reviewData.photoUrl = result.secure_url;
+          uploaded = true;
+        }
       } catch (err) {
-        console.error('Cloudinary Review Upload Error:', err);
-        return res.status(500).json({ error: 'Image upload to Cloudinary failed.' });
+        console.warn('Cloudinary Review Upload Warning:', err.message);
+      }
+
+      if (!uploaded) {
+        try {
+          const uploadsDir = path.join(__dirname, '../../public/uploads/reviews');
+          if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+          const safeName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          fs.writeFileSync(path.join(uploadsDir, safeName), req.file.buffer);
+          reviewData.photoUrl = `/uploads/reviews/${safeName}`;
+        } catch (localErr) {
+          console.error('Local Review Upload Error:', localErr);
+          return res.status(500).json({ error: 'Image upload failed.' });
+        }
       }
     }
 
@@ -717,7 +751,7 @@ router.get('/customers', async (req, res) => {
     const snapshot = await db.collection('customers').get();
     const customers = [];
     snapshot.forEach(doc => {
-      customers.push({ id: doc.id, ...doc.data() });
+      customers.push(sanitizeCustomer({ id: doc.id, ...doc.data() }));
     });
     res.json(customers);
   } catch (error) {
@@ -726,17 +760,66 @@ router.get('/customers', async (req, res) => {
 });
 
 router.post('/customers', async (req, res) => {
-  const customer = req.body;
+  const { name, phone, password, ...rest } = req.body;
+  const email = (req.body.email || '').trim().toLowerCase();
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Name, email, and password are required' });
+  }
   try {
     // Check if customer exists
-    const snapshot = await db.collection('customers').where('email', '==', customer.email).get();
+    const snapshot = await db.collection('customers').where('email', '==', email).get();
     if (!snapshot.empty) {
-      return res.status(400).json({ error: 'Customer already exists' });
+      return res.status(400).json({ error: 'Customer with this email already exists' });
     }
 
-    customer.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const customer = {
+      ...rest,
+      name: name.trim(),
+      email,
+      phone: (phone || '').trim(),
+      password: hashedPassword,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
     const docRef = await db.collection('customers').add(customer);
-    res.json({ success: true, customer: { id: docRef.id, ...customer } });
+    res.json({ success: true, customer: sanitizeCustomer({ id: docRef.id, ...customer }) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- CUSTOMER AUTH: EMAIL + PASSWORD ---
+router.post('/customers/login', async (req, res) => {
+  const email = (req.body.email || '').trim().toLowerCase();
+  const password = req.body.password || '';
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    const snapshot = await db.collection('customers').where('email', '==', email).get();
+    if (snapshot.empty) {
+      return res.status(401).json({ error: 'No account found with this email' });
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    if (!data.password) {
+      return res.status(401).json({ error: 'This account uses Google or OTP login. Please sign in with OTP or Google.' });
+    }
+
+    let valid = false;
+    if (data.password.startsWith('$2a$') || data.password.startsWith('$2b$') || data.password.startsWith('$2y$')) {
+      valid = await bcrypt.compare(password, data.password);
+    } else {
+      valid = (data.password === password);
+    }
+
+    if (!valid) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
+    res.json({ success: true, customer: sanitizeCustomer({ id: doc.id, ...data }) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -744,11 +827,11 @@ router.post('/customers', async (req, res) => {
 
 // --- CUSTOMER AUTH: OTP ---
 router.post('/customers/request-otp', async (req, res) => {
-  const { email } = req.body;
+  const email = (req.body.email || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ error: 'Email is required' });
   
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStorage.set(email.toLowerCase(), { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+  otpStorage.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
   console.log(`🔑 [CUSTOMER OTP] For '${email}': ${otp}`);
 
   try {
@@ -772,27 +855,28 @@ router.post('/customers/verify-otp', async (req, res) => {
   if (!email || !otp) {
     return res.status(400).json({ error: 'Email and OTP are required' });
   }
-  const storedData = otpStorage.get(email.toLowerCase().trim());
+  const cleanEmail = email.toLowerCase().trim();
+  const storedData = otpStorage.get(cleanEmail);
 
   if (!storedData || Date.now() > storedData.expiresAt || storedData.otp !== otp.toString().trim()) {
     return res.status(401).json({ error: 'Invalid or expired OTP' });
   }
 
-  otpStorage.delete(email.toLowerCase().trim());
+  otpStorage.delete(cleanEmail);
 
   try {
     let customerData;
-    const snapshot = await db.collection('customers').where('email', '==', email.toLowerCase()).get();
+    const snapshot = await db.collection('customers').where('email', '==', cleanEmail).get();
     
     if (snapshot.empty) {
       // Create new customer if they don't exist
-      const newCustomer = { email: email.toLowerCase(), name: email.split('@')[0], createdAt: admin.firestore.FieldValue.serverTimestamp() };
+      const newCustomer = { email: cleanEmail, name: cleanEmail.split('@')[0], createdAt: admin.firestore.FieldValue.serverTimestamp() };
       const docRef = await db.collection('customers').add(newCustomer);
       customerData = { id: docRef.id, ...newCustomer };
     } else {
       snapshot.forEach(doc => { customerData = { id: doc.id, ...doc.data() }; });
     }
-    res.json({ success: true, customer: customerData });
+    res.json({ success: true, customer: sanitizeCustomer(customerData) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -801,28 +885,54 @@ router.post('/customers/verify-otp', async (req, res) => {
 // --- CUSTOMER AUTH: GOOGLE LOGIN ---
 router.post('/customers/google-login', async (req, res) => {
   const { credential } = req.body;
+  const clientId = getGoogleClientId();
+
+  if (!clientId) {
+    return res.status(503).json({
+      error: 'Google Login is not configured on the server yet. Please add GOOGLE_CLIENT_ID in backend/.env.'
+    });
+  }
+  if (!credential) {
+    return res.status(400).json({ error: 'Missing Google credential token.' });
+  }
+
   try {
+    const googleClient = new OAuth2Client(clientId);
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: GOOGLE_CLIENT_ID
+      audience: clientId
     });
     const payload = ticket.getPayload();
     const email = payload.email.toLowerCase();
-    const name = payload.name;
+    const name = payload.name || email.split('@')[0];
+    const picture = payload.picture || '';
 
     let customerData;
     const snapshot = await db.collection('customers').where('email', '==', email).get();
     if (snapshot.empty) {
-      const newCustomer = { email, name, createdAt: admin.firestore.FieldValue.serverTimestamp() };
+      const newCustomer = {
+        email,
+        name,
+        picture,
+        authProvider: 'google',
+        emailVerified: payload.email_verified === true,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
       const docRef = await db.collection('customers').add(newCustomer);
       customerData = { id: docRef.id, ...newCustomer };
     } else {
-      snapshot.forEach(doc => { customerData = { id: doc.id, ...doc.data() }; });
+      const doc = snapshot.docs[0];
+      const existing = doc.data();
+      const updates = { authProvider: existing.authProvider || 'google' };
+      if (picture && existing.picture !== picture) updates.picture = picture;
+      if (name && !existing.name) updates.name = name;
+      await doc.ref.update(updates).catch(() => {});
+      customerData = { id: doc.id, ...existing, ...updates };
     }
-    res.json({ success: true, customer: customerData });
+    res.json({ success: true, customer: sanitizeCustomer(customerData) });
   } catch (error) {
-    console.error('Google Auth Error:', error);
-    res.status(401).json({ error: 'Google authentication failed' });
+    console.error('Google Auth Error:', error.message || error);
+    res.status(401).json({ error: 'Google authentication failed. Please verify GOOGLE_CLIENT_ID and authorized origins.' });
   }
 });
 

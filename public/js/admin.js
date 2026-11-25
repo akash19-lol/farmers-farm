@@ -10,8 +10,11 @@ const TOKEN_KEY = 'ff_admin_token';
 // ── DATA HELPERS (Async) ──
 async function fetchAPI(endpoint, options = {}) {
   try {
+    const token = localStorage.getItem(TOKEN_KEY);
     const headers = { ...options.headers };
-    // The browser will automatically attach HttpOnly cookies
+    if (token && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     
     const res = await fetch('/api' + endpoint, { 
       ...options, 
@@ -131,6 +134,10 @@ async function switchPage(page) {
   if (page === 'feedbacks') await renderFeedbacks();
   if (page === 'complaints') await renderComplaints();
   if (page === 'customers') await renderCustomers();
+  if (page === 'promos') await loadPromos();
+  if (page === 'reviews') await loadReviews();
+  if (page === 'blogs') await loadBlogs();
+  if (page === 'subscribers') await loadSubscribers();
 }
 
 // ── OVERVIEW ──
@@ -539,200 +546,30 @@ async function renderComplaints() {
   `).join('');
 }
 
-// ── CUSTOMERS ──
-async function renderCustomers() {
-  const customers = await fetchAPI('/customers') || [];
-  const container = document.getElementById('customersContainer');
-  if (!container) return;
-  if (customers.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><p>No registered customers yet.</p></div>`;
+// ── SUBSCRIBERS ──
+async function loadSubscribers() {
+  const subs = await fetchAPI('/admin/subscribers');
+  const tbody = document.getElementById('subscribersTableBody');
+  const badge = document.getElementById('subscribersBadge');
+  if (!Array.isArray(subs)) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:30px; color:var(--mist);">Could not load subscribers.</td></tr>`;
     return;
   }
-  container.innerHTML = customers.map(c => `
-    <div class="feedback-card">
-      <div class="feedback-meta">
-        <span>👤 <strong>${c.name}</strong></span>
-        <span>📧 ${c.email}</span>
-        <span>📱 ${c.phone}</span>
-        <span>🕐 ${new Date(c.createdAt).toLocaleDateString('en-IN')}</span>
-      </div>
-    </div>
-  `).join('');
-}
-
-// ── PROMO CODES ──
-async function loadPromos() {
-  const token = localStorage.getItem('ff_admin_token');
-  try {
-    const res = await fetch('/api/admin/promos', {
-      credentials: 'include',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Failed to load promos');
-    const promos = await res.json();
-    renderPromos(promos);
-  } catch (err) {
-    console.error(err);
+  if (badge) {
+    badge.textContent = subs.length;
+    badge.style.display = subs.length > 0 ? 'inline' : 'none';
   }
-}
-
-function renderPromos(promos) {
-  const tbody = document.getElementById('promosBody');
   if (!tbody) return;
-  if (promos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--mist);">No promo codes active.</td></tr>`;
+  if (subs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:30px; color:var(--mist);">No newsletter subscribers yet.</td></tr>`;
     return;
   }
-  tbody.innerHTML = promos.map(p => `
-    <tr>
-      <td><strong>${p.code}</strong></td>
-      <td>${p.discountPercentage}%</td>
-      <td><span class="status-badge status-pending">${p.active ? 'Active' : 'Inactive'}</span></td>
-      <td>
-        <button class="btn-cancel" onclick="deletePromo('${p.id}')" style="padding:4px 8px; font-size:12px;">Delete</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-// ── ORDERS ──
-async function renderOrders() {
-  const orders = await fetchAPI('/orders') || [];
-  const container = document.getElementById('ordersContainer');
-  if (!container) return;
-  if (orders.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><p>No orders received yet.</p></div>`;
-    return;
-  }
-  container.innerHTML = orders.map(o => {
-    let shippingHtml = '';
-    if (o.shipping) {
-      const mapLink = o.shipping.lat ? `<a href="https://www.google.com/maps?q=${o.shipping.lat},${o.shipping.lng}" target="_blank" style="color:var(--gold);text-decoration:none;">📍 View on Map</a>` : '';
-      shippingHtml = `
-        <div style="font-size:12px; color:rgba(228,237,231,0.6); margin-top:10px; padding:10px; background:rgba(255,255,255,0.02); border-radius:8px;">
-          <div style="margin-bottom:4px;"><strong style="color:var(--mist);">Delivery Address:</strong> ${o.shipping.address}, ${o.shipping.city} - ${o.shipping.pin}</div>
-          ${mapLink}
-        </div>
-      `;
-    }
-
-    const statusOptions = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
-    const statusSelect = `
-      <select onchange="updateOrderStatus('${o.id}', this.value)" style="margin-left: 10px; padding: 4px; border-radius: 4px; border: 1px solid var(--gold); background: var(--black); color: var(--gold);">
-        ${statusOptions.map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-      </select>
-    `;
-
-    let feedbackHtml = '';
-    if (o.review || o.complaint) {
-      feedbackHtml += `<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">`;
-      if (o.review) {
-        feedbackHtml += `<div style="margin-bottom: 8px; font-size: 13px;">
-          <strong style="color: var(--gold);">⭐ Review (${o.review.rating}/5):</strong> 
-          <span style="color: var(--white);">${o.review.comment}</span> 
-          <span style="color: var(--mist); font-size: 11px;">(${o.review.date})</span>
-        </div>`;
-      }
-      if (o.complaint) {
-        feedbackHtml += `<div style="font-size: 13px;">
-          <strong style="color: #e74c3c;">⚠️ Complaint:</strong> 
-          <span style="color: var(--white);">${o.complaint.text}</span> 
-          <span style="color: var(--mist); font-size: 11px;">(${o.complaint.date})</span>
-        </div>`;
-      }
-      feedbackHtml += `</div>`;
-    }
-
-    return `
-    <div class="order-card">
-      <div class="order-header">
-        <div><span class="order-id">${o.id}</span> ${statusSelect}</div>
-        <span class="order-date">${o.date}</span>
-      </div>
-      <div class="order-items">${o.items.join(' · ')}</div>
-      <div class="order-total">Total: ₹${o.total.toLocaleString('en-IN')}</div>
-      ${o.customer ? `
-        <div class="order-customer">
-          👤 <strong>${o.customer.name}</strong> · 📧 ${o.customer.email} · 📱 ${o.customer.phone}
-        </div>
-      ` : ''}
-      ${shippingHtml}
-      ${feedbackHtml}
-    </div>
-  `}).join('');
-}
-
-async function updateOrderStatus(orderId, newStatus) {
-  try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const res = await fetch('/api/orders/' + orderId + '/status', {
-      credentials: 'include',
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ status: newStatus })
-    });
-    if (res.ok) {
-      alert('Order status updated successfully!');
-      await loadDashboardData();
-    } else {
-      alert('Failed to update status.');
-    }
-  } catch(e) {
-    console.error(e);
-    alert('Error updating status.');
-  }
-}
-
-// ── FEEDBACKS ──
-async function renderFeedbacks() {
-  const feedbacks = await fetchAPI('/feedbacks') || [];
-  const container = document.getElementById('feedbacksContainer');
-  if (!container) return;
-  if (feedbacks.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><p>No feedback received yet.</p></div>`;
-    return;
-  }
-  container.innerHTML = feedbacks.map(f => `
-    <div class="feedback-card">
-      <div class="feedback-meta">
-        <span>👤 <strong>${f.name}</strong></span>
-        <span>📞 ${f.contact}</span>
-        ${f.city ? '<span>📍 ' + f.city + '</span>' : ''}
-        ${f.packet ? '<span>📦 ' + f.packet + '</span>' : ''}
-        <span>🕐 ${f.date}</span>
-      </div>
-      <div class="feedback-message">"${f.message}"</div>
-    </div>
-  `).join('');
-}
-
-// ── COMPLAINTS ──
-async function renderComplaints() {
-  const orders = await fetchAPI('/orders') || [];
-  const container = document.getElementById('complaintsContainer');
-  if (!container) return;
-  const complaints = orders.filter(o => o.complaint);
-  
-  if (complaints.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon" style="color:var(--mist);">✅</div><p>No complaints reported! Everything is smooth.</p></div>`;
-    return;
-  }
-  container.innerHTML = complaints.map(o => `
-    <div class="feedback-card" style="border-left: 4px solid #e74c3c;">
-      <div class="feedback-meta">
-        <span>👤 <strong>${o.customer ? o.customer.name : 'Unknown'}</strong></span>
-        <span>📞 ${o.customer ? o.customer.phone : 'Unknown'}</span>
-        <span>📦 Order ID: ${o.id}</span>
-        <span>🕐 ${o.complaint.date}</span>
-      </div>
-      <div class="feedback-message" style="color: #e74c3c; font-weight: 500;">
-        " ${o.complaint.text} "
-      </div>
-    </div>
-  `).join('');
+  tbody.innerHTML = subs.map(s => {
+    const dt = s.createdAt?._seconds
+      ? new Date(s.createdAt._seconds * 1000).toLocaleDateString('en-IN')
+      : (s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN') : '—');
+    return `<tr><td><strong>${s.email}</strong></td><td>${dt}</td></tr>`;
+  }).join('');
 }
 
 // ── CUSTOMERS ──
@@ -744,16 +581,21 @@ async function renderCustomers() {
     container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><p>No registered customers yet.</p></div>`;
     return;
   }
-  container.innerHTML = customers.map(c => `
+  container.innerHTML = customers.map(c => {
+    const dt = c.createdAt?._seconds
+      ? new Date(c.createdAt._seconds * 1000).toLocaleDateString('en-IN')
+      : (c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-IN') : '—');
+    return `
     <div class="feedback-card">
       <div class="feedback-meta">
-        <span>👤 <strong>${c.name}</strong></span>
-        <span>📧 ${c.email}</span>
-        <span>📱 ${c.phone}</span>
-        <span>🕐 ${new Date(c.createdAt).toLocaleDateString('en-IN')}</span>
+        <span>👤 <strong>${c.name || 'Customer'}</strong></span>
+        <span>📧 ${c.email || '—'}</span>
+        <span>📱 ${c.phone || 'Google / OTP'}</span>
+        <span>🕐 ${dt}</span>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // ── PROMO CODES ──
@@ -913,20 +755,21 @@ async function loadBlogs() {
 }
 
 function renderAdminBlogs(blogs) {
-  const tbody = document.getElementById('blogsBody');
+  const tbody = document.getElementById('blogsTableBody');
   if (!tbody) return;
   if (blogs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--mist);">No blog posts found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--mist);">No blog posts found.</td></tr>`;
     return;
   }
   tbody.innerHTML = blogs.map(b => `
     <tr>
       <td><strong>${b.title}</strong></td>
-      <td>/blog/${b.slug}</td>
-      <td>${b.createdAt ? new Date(b.createdAt._seconds ? b.createdAt._seconds * 1000 : b.createdAt).toLocaleDateString() : ''}</td>
+      <td>${b.author || 'Admin'}</td>
+      <td>${b.createdAt ? new Date(b.createdAt._seconds ? b.createdAt._seconds * 1000 : b.createdAt).toLocaleDateString('en-IN') : '—'}</td>
+      <td><span class="table-badge badge-new">Published</span></td>
       <td>
-        <a href="/blog/${b.slug}" target="_blank" class="btn" style="padding:4px 8px; font-size:12px; text-decoration:none; margin-right:8px;">View</a>
-        <button class="btn-cancel" onclick="deleteBlog('${b.id}')" style="padding:4px 8px; font-size:12px;">Delete</button>
+        <a href="/blog/${b.slug}" target="_blank" class="btn-edit" style="text-decoration:none;">View</a>
+        <button class="btn-delete" onclick="deleteBlog('${b.id}')">Delete</button>
       </td>
     </tr>
   `).join('');

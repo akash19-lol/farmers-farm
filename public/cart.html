@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Cart – Farmers Farm</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=10">`n<link rel="stylesheet" href="css/3d-effects.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/3d-effects.css?v=1">
 <!-- Google Identity Services for Google Login -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -23,7 +24,7 @@
   </ul>
   <div class="nav-right">
     <div class="nav-user" id="navUserBtn" style="position:relative; cursor:pointer;" title="Account" onclick="event.stopPropagation(); toggleUserDropdown();">
-      <div id="navUserIcon" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:20px; color:var(--mist);">👤</div>
+      <div id="navUserIcon" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:20px; color:var(--green-deep);">👤</div>
       <div class="user-dropdown" id="userDropdown" onclick="event.stopPropagation();">
         <div id="dropdownLoggedOutView">
           <button class="user-dropdown-item" onclick="window.location.href='/login.html';">🔐 Login / Sign Up</button>
@@ -95,35 +96,31 @@
     </div>
     <div class="auth-error" id="authError"></div>
     <!-- LOGIN -->
-    <form class="auth-form active" id="loginFormContainer">
-      <div id="otpStep1">
-        <div class="auth-field"><label>Email</label><input type="email" id="clEmail" placeholder="your@email.com" required></div>
-        <button type="button" class="auth-btn" id="sendOtpBtn">Send OTP →</button>
+    <form class="auth-form active" id="loginFormContainer" novalidate>
+      <div id="otpLoginMode">
+        <div id="otpStep1">
+          <div class="auth-field"><label>Email</label><input type="email" id="clEmail" placeholder="your@email.com"></div>
+          <button type="button" class="auth-btn" id="sendOtpBtn">Send OTP →</button>
+        </div>
+        <div id="otpStep2" style="display:none;">
+          <div class="auth-field"><label>Enter OTP</label><input type="text" id="clOtp" placeholder="6-digit code"></div>
+          <button type="submit" class="auth-btn" id="customerLoginForm">Verify OTP & Login</button>
+          <button type="button" id="changeOtpEmailBtn" style="background:none;border:none;color:var(--gold);font-size:12px;margin-top:8px;cursor:pointer;display:block;width:100%;text-align:center;">← Change Email</button>
+        </div>
       </div>
-      <div id="otpStep2" style="display:none;">
-        <div class="auth-field"><label>Enter OTP</label><input type="text" id="clOtp" placeholder="6-digit code"></div>
-        <button type="submit" class="auth-btn" id="customerLoginForm">Verify OTP & Login</button>
+
+      <div id="passwordLoginMode" style="display:none;">
+        <div class="auth-field"><label>Email</label><input type="email" id="clPassEmail" placeholder="your@email.com"></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="clPass" placeholder="Enter password"></div>
+        <button type="submit" class="auth-btn" id="passwordLoginBtn">Sign In →</button>
       </div>
+
+      <button type="button" id="toggleLoginModeBtn" style="background:none;border:none;color:var(--gold);font-size:12px;margin:10px auto 0;cursor:pointer;display:block;text-decoration:underline;">Or login with Password instead</button>
       
-      <div style="text-align: center; margin: 15px 0; color: var(--mist);">OR</div>
+      <div style="text-align: center; margin: 14px 0; color: var(--mist); font-size: 12px;">OR</div>
       
-      <!-- Google Sign In Button -->
-      <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID_HERE"
-           data-context="use"
-           data-ux_mode="popup"
-           data-callback="handleGoogleLogin"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin"
-           data-type="standard"
-           data-shape="rectangular"
-           data-theme="outline"
-           data-text="continue_with"
-           data-size="large"
-           data-logo_alignment="center"
-           style="display: flex; justify-content: center; margin-bottom: 10px;">
-      </div>
+      <!-- Dynamic Google Sign In Button -->
+      <div id="googleSignInContainer" style="display: flex; justify-content: center; margin-bottom: 10px;"></div>
     </form>
     <!-- SIGNUP -->
     <form class="auth-form" id="signupFormContainer">

@@ -15,11 +15,14 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍵</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=10">`n<link rel="stylesheet" href="css/3d-effects.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/3d-effects.css?v=1">
 <!-- Google Identity Services for Google Login -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+<div id="scrollProgress"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
 
 <!-- PRELOADER -->
   <div class="preloader" id="preloader">
@@ -47,19 +50,19 @@
 
 <!-- NAV -->
 <nav>
-  <div class="nav-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <div class="nav-logo" onclick="window.location.href='/'" style="cursor:pointer;">
     <span>FARMERS FARM</span>
     <span>Est. 2020 · Pure Harvest</span>
   </div>
   <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
   <ul class="nav-links">
-    <li><a href="#about">About</a></li>
-    <li><a href="#ingredients">Ingredients</a></li>
-    <li><a href="#shop">Shop</a></li>
-    <li><a href="#testimonials">Reviews</a></li>
+    <li><a href="/#about">About</a></li>
+    <li><a href="/#ingredients">Ingredients</a></li>
+    <li><a href="/#shop">Shop</a></li>
+    <li><a href="/#testimonials">Reviews</a></li>
     <li><a href="/blogs">Blog</a></li>
-    <li><a href="#location">Find Us</a></li>
-    <li><a href="#contact">Contact</a></li>
+    <li><a href="/#location">Find Us</a></li>
+    <li><a href="/#contact">Contact</a></li>
   </ul>
   <div class="nav-right">
     <button id="themeToggleBtn" title="Toggle Theme" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--green-deep); margin-right:12px;">🌓</button>
@@ -67,18 +70,18 @@
       <div id="navUserIcon" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:20px; color:var(--green-deep);">👤</div>
       <div class="user-dropdown" id="userDropdown" onclick="event.stopPropagation();">
         <div id="dropdownLoggedOutView">
-          <button class="user-dropdown-item" onclick="openAuthModal(); document.getElementById('userDropdown').classList.remove('show');">🔐 Login / Sign Up</button>
+          <button class="user-dropdown-item" onclick="document.getElementById('userDropdown').classList.remove('show');">🔐 Login / Sign Up</button>
         </div>
         <div id="dropdownLoggedInView" style="display: none;">
           <div class="user-dropdown-name" id="dropdownName"></div>
           <div class="user-dropdown-email" id="dropdownEmail"></div>
-          <button class="user-dropdown-item" onclick="openAccountModal(); document.getElementById('userDropdown').classList.remove('show');">⚙️ My Account</button>
+          <button class="user-dropdown-item" onclick="window.location.href='/';">🏠 Back to Store</button>
           <button class="user-dropdown-item danger" id="logoutBtn">🚪 Logout</button>
         </div>
       </div>
     </div>
-    <div class="nav-cart" id="cartIcon" title="View Cart">🛒<span class="cart-count" id="cartCount">0</span></div>
-    <button class="nav-cta" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Order Now</button>
+    <div class="nav-cart" id="cartIcon" title="View Cart" onclick="window.location.href='/cart.html'">🛒<span class="cart-count" id="cartCount">0</span></div>
+    <button class="nav-cta" onclick="window.location.href='/#shop'">Order Now</button>
   </div>
 </nav>
 
@@ -102,35 +105,31 @@
     </div>
     <div class="auth-error" id="authError"></div>
     <!-- LOGIN -->
-    <form class="auth-form active" id="loginFormContainer">
-      <div id="otpStep1">
-        <div class="auth-field"><label>Email</label><input type="email" id="clEmail" placeholder="your@email.com" required></div>
-        <button type="button" class="auth-btn" id="sendOtpBtn">Send OTP &rarr;</button>
+    <form class="auth-form active" id="loginFormContainer" novalidate>
+      <div id="otpLoginMode">
+        <div id="otpStep1">
+          <div class="auth-field"><label>Email</label><input type="email" id="clEmail" placeholder="your@email.com"></div>
+          <button type="button" class="auth-btn" id="sendOtpBtn">Send OTP &rarr;</button>
+        </div>
+        <div id="otpStep2" style="display:none;">
+          <div class="auth-field"><label>Enter OTP</label><input type="text" id="clOtp" placeholder="6-digit code"></div>
+          <button type="submit" class="auth-btn" id="customerLoginForm">Verify OTP &amp; Login</button>
+          <button type="button" id="changeOtpEmailBtn" style="background:none;border:none;color:var(--gold);font-size:12px;margin-top:8px;cursor:pointer;display:block;width:100%;text-align:center;">&larr; Change Email</button>
+        </div>
       </div>
-      <div id="otpStep2" style="display:none;">
-        <div class="auth-field"><label>Enter OTP</label><input type="text" id="clOtp" placeholder="6-digit code"></div>
-        <button type="submit" class="auth-btn" id="customerLoginForm">Verify OTP &amp; Login</button>
+
+      <div id="passwordLoginMode" style="display:none;">
+        <div class="auth-field"><label>Email</label><input type="email" id="clPassEmail" placeholder="your@email.com"></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="clPass" placeholder="Enter password"></div>
+        <button type="submit" class="auth-btn" id="passwordLoginBtn">Sign In &rarr;</button>
       </div>
+
+      <button type="button" id="toggleLoginModeBtn" style="background:none;border:none;color:var(--gold);font-size:12px;margin:10px auto 0;cursor:pointer;display:block;text-decoration:underline;">Or login with Password instead</button>
       
-      <div style="text-align: center; margin: 15px 0; color: var(--mist);">OR</div>
+      <div style="text-align: center; margin: 14px 0; color: var(--mist); font-size: 12px;">OR</div>
       
-      <!-- Google Sign In Button -->
-      <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID_HERE"
-           data-context="use"
-           data-ux_mode="popup"
-           data-callback="handleGoogleLogin"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin"
-           data-type="standard"
-           data-shape="rectangular"
-           data-theme="outline"
-           data-text="continue_with"
-           data-size="large"
-           data-logo_alignment="center"
-           style="display: flex; justify-content: center; margin-bottom: 10px;">
-      </div>
+      <!-- Dynamic Google Sign In Button -->
+      <div id="googleSignInContainer" style="display: flex; justify-content: center; margin-bottom: 10px;"></div>
     </form>
     <!-- SIGNUP -->
     <form class="auth-form" id="signupFormContainer">
@@ -154,17 +153,9 @@
     });
   }
 </script>
+<div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+<script src="js/effects3d.js?v=1"></script>
 <script src="js/app.js?v=10"></script>
-<script>
-  // Wait a bit and override the close modal to go home
-  setTimeout(() => {
-    window.closeAuthModal = function() { window.location.href = '/'; };
-    const oldLogin = window.loginCustomer;
-    window.loginCustomer = function(c) {
-      oldLogin(c);
-      setTimeout(() => window.location.href = '/', 1000);
-    };
-  }, 1000);
-</script>
 </body>
 </html>

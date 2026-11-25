@@ -10,43 +10,65 @@
   --neon-green: rgba(90,148,112,0.6);
 }
 
-/* ── 2. ENHANCED NAV – Premium Glass ── */
+/* ── 2. ENHANCED NAV – Ivory & Gold Glass (Light + Dark Theme Safe) ── */
 nav {
-  background: rgba(13,33,22,0.60) !important;
+  background: rgba(247,240,224,0.80) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  border-bottom: 1px solid rgba(184,134,11,0.25) !important;
+  border-bottom: 1px solid rgba(184,134,11,0.28) !important;
   box-shadow:
-    0 4px 24px rgba(0,0,0,0.3),
-    0 1px 0 rgba(255,255,255,0.05) inset !important;
+    0 8px 32px rgba(44,74,53,0.10),
+    0 1px 0 rgba(255,255,255,0.65) inset !important;
 }
 
-/* Nav logo 3D text shadow */
+nav.scrolled {
+  background: rgba(247,240,224,0.94) !important;
+  box-shadow:
+    0 12px 40px rgba(44,74,53,0.16),
+    0 1px 0 rgba(255,255,255,0.75) inset !important;
+}
+
+[data-theme="dark"] nav {
+  background: rgba(15,24,13,0.82) !important;
+  border-bottom: 1px solid rgba(212,160,23,0.25) !important;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.45),
+    0 1px 0 rgba(255,255,255,0.06) inset !important;
+}
+
+[data-theme="dark"] .nav-logo span:first-child,
+[data-theme="dark"] #themeToggleBtn,
+[data-theme="dark"] #navUserIcon {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .nav-logo span:last-child {
+  color: var(--text-muted) !important;
+}
+
+/* Nav logo 3D text depth */
 .nav-logo span:first-child {
   text-shadow:
-    1px 1px 0 rgba(184,134,11,0.4),
-    2px 2px 0 rgba(184,134,11,0.3),
-    3px 3px 0 rgba(184,134,11,0.2),
-    0 0 20px rgba(184,134,11,0.3);
+    1px 1px 0 rgba(184,134,11,0.25),
+    2px 2px 6px rgba(44,74,53,0.15);
   letter-spacing: 3px;
 }
 
-/* ── 3. HERO SECTION – 3D Depth Layer ── */
+/* ── 3. HERO SECTION – 3D Depth Stage ── */
 .hero {
   perspective: var(--perspective);
   transform-style: preserve-3d;
 }
 
-/* Floating 3D grid lines */
 .hero::before {
-  background: radial-gradient(ellipse at 70% 30%, rgba(212,160,23,0.25), transparent 65%) !important;
+  background: radial-gradient(ellipse at 70% 30%, rgba(212,160,23,0.28), transparent 65%) !important;
   animation: orbFloat3D 20s ease-in-out infinite !important;
   opacity: 0.25 !important;
 }
 .hero::after {
-  background: radial-gradient(ellipse at 30% 70%, rgba(90,148,112,0.25), transparent 65%) !important;
+  background: radial-gradient(ellipse at 30% 70%, rgba(90,148,112,0.28), transparent 65%) !important;
   animation: orbFloat3D 28s ease-in-out infinite reverse !important;
-  opacity: 0.2 !important;
+  opacity: 0.22 !important;
 }
 
 @keyframes orbFloat3D {
@@ -56,47 +78,81 @@ nav {
   100% { transform: translate(0,0) scale(1); }
 }
 
-/* Hero inner – 3D float */
+/* Hero inner – 3D layers with true translateZ depth */
 .hero-inner {
   transform-style: preserve-3d;
-  animation: heroFloat3D 8s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+  will-change: transform;
+  transition: transform 0.15s ease-out;
 }
-@keyframes heroFloat3D {
-  0%, 100% { transform: translateY(0) rotateX(0deg); }
-  50%       { transform: translateY(-10px) rotateX(1deg); }
+.hero-eyebrow { transform: translateZ(20px); }
+.hero-title   { transform: translateZ(48px); }
+.hero-sub     { transform: translateZ(34px); }
+.hero-desc    { transform: translateZ(22px); }
+.hero-btns    { transform: translateZ(38px); }
+
+/* 3D orbital rings behind hero headline */
+.hero-3d-rings {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: min(560px, 85vw);
+  height: min(560px, 85vw);
+  transform: translate(-50%, -50%) perspective(900px) rotateX(68deg);
+  transform-style: preserve-3d;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(212,160,23,0.22);
+  box-shadow: 0 0 28px rgba(212,160,23,0.08), inset 0 0 24px rgba(90,148,112,0.08);
+  animation: ringOrbit 24s linear infinite;
+}
+.hero-ring-2 {
+  inset: 14%;
+  border-color: rgba(90,148,112,0.25);
+  border-style: dashed;
+  animation: ringOrbit 18s linear infinite reverse;
+}
+@keyframes ringOrbit {
+  from { transform: rotateZ(0deg); }
+  to   { transform: rotateZ(360deg); }
 }
 
 /* Hero title – 3D extrusion */
 .hero-title {
+  color: #FFFFFF !important;
   text-shadow:
-    0 1px 0 rgba(255,255,255,0.1),
-    1px 2px 0 rgba(0,0,0,0.3),
-    2px 4px 0 rgba(0,0,0,0.25),
-    3px 6px 0 rgba(0,0,0,0.2),
-    4px 8px 10px rgba(0,0,0,0.3),
-    0 0 40px rgba(212,160,23,0.15) !important;
+    0 1px 0 rgba(255,255,255,0.12),
+    1px 2px 0 rgba(0,0,0,0.35),
+    2px 4px 0 rgba(0,0,0,0.28),
+    3px 6px 0 rgba(0,0,0,0.22),
+    4px 10px 18px rgba(0,0,0,0.38),
+    0 0 40px rgba(212,160,23,0.18) !important;
 }
 
 .hero-title em {
+  color: var(--gold-bright) !important;
   text-shadow:
-    0 1px 0 rgba(212,160,23,0.3),
-    1px 2px 0 rgba(184,134,11,0.3),
-    2px 4px 0 rgba(184,134,11,0.2),
+    0 1px 0 rgba(212,160,23,0.35),
+    1px 2px 0 rgba(184,134,11,0.35),
+    2px 4px 0 rgba(184,134,11,0.25),
     3px 6px 0 rgba(184,134,11,0.15),
-    0 0 30px rgba(212,160,23,0.4) !important;
+    0 0 32px rgba(212,160,23,0.45) !important;
   animation: goldPulse 3s ease-in-out infinite;
 }
 @keyframes goldPulse {
   0%, 100% { filter: brightness(1) drop-shadow(0 0 10px rgba(212,160,23,0.3)); }
-  50%       { filter: brightness(1.1) drop-shadow(0 0 25px rgba(212,160,23,0.6)); }
+  50%       { filter: brightness(1.12) drop-shadow(0 0 26px rgba(212,160,23,0.65)); }
 }
 
-/* Hero sub text neon glow */
 .hero-sub {
   text-shadow:
     0 0 10px rgba(212,160,23,0.4),
-    0 0 20px rgba(212,160,23,0.2),
-    0 0 40px rgba(212,160,23,0.1) !important;
+    0 0 22px rgba(212,160,23,0.2) !important;
 }
 
 /* CTA Buttons – 3D Press Effect */
@@ -105,22 +161,22 @@ nav {
   transform: translateZ(0);
   box-shadow:
     0 4px 15px rgba(201,168,76,0.3),
-    0 6px 0 rgba(140,100,5,0.6),
-    0 8px 15px rgba(0,0,0,0.3) !important;
+    0 5px 0 rgba(140,100,5,0.65),
+    0 8px 18px rgba(0,0,0,0.3) !important;
   transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94) !important;
 }
 .btn-primary:hover {
   transform: translateY(-3px) !important;
   box-shadow:
     0 8px 25px rgba(201,168,76,0.5),
-    0 10px 0 rgba(140,100,5,0.6),
+    0 8px 0 rgba(140,100,5,0.65),
     0 15px 25px rgba(0,0,0,0.3) !important;
 }
 .btn-primary:active {
-  transform: translateY(4px) !important;
+  transform: translateY(3px) !important;
   box-shadow:
     0 1px 5px rgba(201,168,76,0.3),
-    0 2px 0 rgba(140,100,5,0.6) !important;
+    0 2px 0 rgba(140,100,5,0.65) !important;
 }
 
 .btn-outline {
@@ -140,44 +196,90 @@ nav {
   pointer-events: none;
   z-index: 1;
 }
-.hero-inner { position: relative; z-index: 2; }
 
-/* ── 5. ABOUT SECTION – 3D Card ── */
+/* ── 5. ABOUT SECTION – 3D Product Showcase Stage ── */
 .about-visual {
-  perspective: 800px;
+  perspective: 1000px;
   transform-style: preserve-3d !important;
-  transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+  overflow: visible !important;
+  height: 410px !important;
+  background: radial-gradient(circle at 50% 45%, rgba(212,160,23,0.22), rgba(44,74,53,0.30) 70%) !important;
   box-shadow:
-    0 20px 60px rgba(44,74,53,0.2),
-    0 0 0 1px rgba(184,134,11,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.1) !important;
-}
-.about-visual:hover {
-  transform: rotateY(5deg) rotateX(-3deg) scale(1.02) !important;
-  box-shadow:
-    20px 30px 80px rgba(44,74,53,0.3),
-    0 0 0 1px rgba(184,134,11,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.15) !important;
+    0 24px 60px rgba(44,74,53,0.22),
+    0 0 0 1px rgba(184,134,11,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.2) !important;
 }
 
-/* Big tea cup 3D animation */
-.big-leaf {
-  animation: teaBrew3D 5s ease-in-out infinite !important;
-  filter: drop-shadow(0 10px 30px rgba(201,168,76,0.4)) drop-shadow(0 0 60px rgba(201,168,76,0.2)) !important;
+.about-visual-inner {
+  transform-style: preserve-3d;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px !important;
 }
-@keyframes teaBrew3D {
-  0%, 100% {
-    transform: translateY(0) rotateY(0deg) scale(1);
-    filter: drop-shadow(0 10px 30px rgba(201,168,76,0.3)) drop-shadow(0 0 40px rgba(201,168,76,0.15));
-  }
-  25% {
-    transform: translateY(-8px) rotateY(15deg) scale(1.05);
-    filter: drop-shadow(0 20px 40px rgba(201,168,76,0.5)) drop-shadow(0 0 60px rgba(201,168,76,0.3));
-  }
-  75% {
-    transform: translateY(-4px) rotateY(-10deg) scale(1.03);
-    filter: drop-shadow(0 15px 35px rgba(201,168,76,0.4)) drop-shadow(0 0 50px rgba(201,168,76,0.2));
-  }
+
+.showcase-3d-stage {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  margin-bottom: 12px;
+}
+
+.showcase-halo {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  border: 2px dashed rgba(212,160,23,0.45);
+  box-shadow: 0 0 36px rgba(212,160,23,0.25), inset 0 0 28px rgba(44,74,53,0.2);
+  transform: rotateX(70deg) translateZ(-20px);
+  animation: haloSpin 14s linear infinite;
+}
+@keyframes haloSpin {
+  from { transform: rotateX(70deg) translateZ(-20px) rotateZ(0deg); }
+  to   { transform: rotateX(70deg) translateZ(-20px) rotateZ(360deg); }
+}
+
+.showcase-pouch {
+  width: 205px;
+  height: 205px;
+  object-fit: contain;
+  transform: translateZ(45px);
+  filter: drop-shadow(0 24px 28px rgba(26,46,34,0.42)) drop-shadow(0 0 22px rgba(212,160,23,0.28));
+  animation: pouchFloat3D 5s ease-in-out infinite;
+}
+@keyframes pouchFloat3D {
+  0%, 100% { transform: translateZ(45px) translateY(0) rotateY(-4deg); }
+  50%       { transform: translateZ(55px) translateY(-10px) rotateY(5deg); }
+}
+
+.showcase-pill {
+  position: absolute;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255,253,245,0.92);
+  color: var(--green-deep);
+  border: 1px solid rgba(184,134,11,0.4);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  transform: translateZ(65px);
+  white-space: nowrap;
+}
+.showcase-pill-1 { top: 14px; right: -8px; animation: pillBob 4s ease-in-out infinite; }
+.showcase-pill-2 { bottom: 26px; left: -12px; animation: pillBob 4s ease-in-out infinite 1.8s; }
+@keyframes pillBob {
+  0%, 100% { transform: translateZ(65px) translateY(0); }
+  50%       { transform: translateZ(72px) translateY(-5px); }
 }
 
 /* Stats – 3D pop */
@@ -193,10 +295,15 @@ nav {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(2px 3px 0 rgba(44,74,53,0.3));
+  filter: drop-shadow(2px 3px 0 rgba(44,74,53,0.25));
+}
+[data-theme="dark"] .stat-num {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
-/* ── 6. INGREDIENTS SECTION – Flip Cards ── */
+/* ── 6. INGREDIENTS SECTION – 3D Glass Tilt Cards ── */
 .ing-card {
   transform-style: preserve-3d;
   position: relative;
@@ -204,37 +311,35 @@ nav {
   min-height: 200px;
 }
 
-/* Enhanced ing-card hover */
 .ing-card:hover {
   background: rgba(212,160,23,0.18) !important;
   border-color: rgba(212,160,23,0.6) !important;
-  transform: translateY(-10px) rotateX(5deg) rotateZ(-1deg) !important;
   box-shadow:
     0 20px 60px rgba(0,0,0,0.4),
     0 0 30px rgba(212,160,23,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    inset 0 1px 0 rgba(255,255,255,0.15) !important;
 }
+.ing-card .ing-icon { transform: translateZ(28px); }
+.ing-card .ing-name { transform: translateZ(20px); text-shadow: 0 0 10px rgba(212,160,23,0.3); }
+.ing-card .ing-desc { transform: translateZ(12px); }
 .ing-card:hover .ing-icon {
-  transform: scale(1.3) rotateY(360deg) !important;
-  transition: transform 0.6s !important;
-}
-.ing-name {
-  text-shadow: 0 0 10px rgba(212,160,23,0.3);
+  transform: translateZ(34px) scale(1.22) rotateY(360deg);
+  transition: transform 0.65s;
 }
 
-/* ── 7. PRODUCT / PACKET CARDS – 3D Premium ── */
+/* ── 7. PRODUCT / PACKET CARDS – 3D Premium (No !important on transform so VanillaTilt tracks mouse!) ── */
 .packet-card {
   transform-style: preserve-3d;
   transition:
-    transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94),
+    transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94),
     box-shadow 0.4s !important;
   box-shadow:
-    0 4px 24px rgba(44,74,53,0.08),
+    0 6px 24px rgba(44,74,53,0.09),
     0 1px 0 rgba(255,255,255,0.8) inset !important;
   will-change: transform;
 }
 
-/* Shimmer effect on card top */
+/* Shimmer effect */
 .packet-card::after {
   content: '';
   position: absolute;
@@ -243,10 +348,10 @@ nav {
   background: linear-gradient(
     105deg,
     transparent 40%,
-    rgba(255,255,255,0.15) 50%,
+    rgba(255,255,255,0.18) 50%,
     transparent 60%
   );
-  transition: left 0.5s;
+  transition: left 0.55s;
   pointer-events: none;
   z-index: 3;
   border-radius: 16px;
@@ -254,36 +359,38 @@ nav {
 .packet-card:hover::after { left: 150%; }
 
 .packet-card:hover {
-  transform: translateY(-12px) !important;
   box-shadow:
-    0 30px 70px rgba(44,74,53,0.22),
-    0 0 0 1px rgba(184,134,11,0.4),
-    0 0 30px rgba(184,134,11,0.15),
+    0 28px 65px rgba(44,74,53,0.24),
+    0 0 0 1px rgba(184,134,11,0.45),
+    0 0 30px rgba(184,134,11,0.16),
     0 1px 0 rgba(255,255,255,0.8) inset !important;
 }
 
 .packet-card.popular {
   box-shadow:
-    0 4px 24px rgba(201,168,76,0.15),
+    0 6px 24px rgba(201,168,76,0.18),
     0 0 0 2px var(--gold),
-    0 0 20px rgba(201,168,76,0.2) !important;
+    0 0 20px rgba(201,168,76,0.22) !important;
 }
 .packet-card.popular:hover {
   box-shadow:
-    0 30px 70px rgba(44,74,53,0.25),
+    0 30px 70px rgba(44,74,53,0.28),
     0 0 0 2px var(--gold),
-    0 0 40px rgba(201,168,76,0.4) !important;
+    0 0 40px rgba(201,168,76,0.42) !important;
 }
 
-/* Product image – 3D float */
+/* Product inner elements pop out in 3D depth */
 .packet-image {
-  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
+  filter: drop-shadow(0 12px 20px rgba(0,0,0,0.18));
+  transform: translateZ(26px);
   transition: transform 0.4s, filter 0.4s !important;
 }
 .packet-card:hover .packet-image {
-  transform: scale(1.12) translateY(-6px) rotateY(5deg) !important;
-  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)) !important;
+  transform: translateZ(42px) scale(1.1) translateY(-6px) rotateY(6deg) !important;
+  filter: drop-shadow(0 24px 32px rgba(0,0,0,0.28)) !important;
 }
+.packet-weight { transform: translateZ(18px); }
+.packet-price  { transform: translateZ(20px); }
 
 /* Add to Cart button – 3D press */
 .add-btn {
@@ -292,19 +399,12 @@ nav {
   box-shadow: 0 4px 0 rgba(27,58,45,0.3), 0 6px 15px rgba(0,0,0,0.1);
   transition: all 0.2s !important;
 }
-.add-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
-  pointer-events: none;
-}
 .add-btn:active {
   transform: translateY(3px) !important;
   box-shadow: 0 1px 0 rgba(27,58,45,0.3) !important;
 }
 
-/* Popular badge – 3D shimmer */
+/* Popular badge */
 .popular-badge {
   animation: badgePulse 2.5s ease-in-out infinite;
   box-shadow: 0 2px 10px rgba(201,168,76,0.4), 0 0 20px rgba(201,168,76,0.2) !important;
@@ -316,20 +416,15 @@ nav {
 
 /* ── 8. TESTIMONIAL / REVIEW CARDS – 3D Hover ── */
 .testimonial-card {
-  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+  transition: transform 0.25s, box-shadow 0.4s !important;
   transform-style: preserve-3d;
 }
 .testimonial-card:hover {
-  transform: translateY(-8px) rotateX(3deg) !important;
   box-shadow:
     0 20px 50px rgba(44,74,53,0.18),
     0 0 0 1px rgba(184,134,11,0.3),
     0 0 20px rgba(184,134,11,0.1) !important;
   border-color: var(--gold) !important;
-}
-.testimonial-stars {
-  animation: starPop 0.4s;
-  display: inline-block;
 }
 .testimonial-card:hover .testimonial-stars {
   filter: drop-shadow(0 0 6px rgba(212,160,23,0.8));
@@ -337,16 +432,16 @@ nav {
 
 /* ── 9. CONTACT CARDS – 3D Glow ── */
 .contact-card {
-  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+  transition: transform 0.25s, box-shadow 0.4s !important;
   transform-style: preserve-3d;
 }
 .contact-card:hover {
-  transform: translateY(-8px) rotateX(5deg) !important;
   box-shadow:
     0 20px 50px rgba(27,58,45,0.15),
     0 0 30px rgba(201,168,76,0.15) !important;
   border-color: var(--gold) !important;
 }
+.contact-icon { transform: translateZ(24px); }
 
 /* ── 10. LOC ITEMS – Slide 3D ── */
 .loc-item {
@@ -361,9 +456,8 @@ nav {
 /* ── 11. SECTION TITLES – 3D Text ── */
 .section-title {
   text-shadow:
-    1px 1px 0 rgba(44,74,53,0.15),
-    2px 2px 0 rgba(44,74,53,0.1),
-    0 0 30px rgba(44,74,53,0.05);
+    1px 1px 0 rgba(44,74,53,0.12),
+    2px 2px 0 rgba(44,74,53,0.08);
 }
 .ingredients-section .section-title {
   text-shadow:
@@ -428,33 +522,18 @@ nav {
   box-shadow: 0 0 10px rgba(212,160,23,0.5);
 }
 
-/* ── 17. FLOATING PARTICLES ── */
-.hero-particle {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 50%;
-  animation: particleDrift linear infinite;
-  opacity: 0;
-}
-@keyframes particleDrift {
-  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
-  10%  { opacity: 0.6; }
-  90%  { opacity: 0.3; }
-  100% { transform: translateY(-10vh) translateX(var(--drift, 0px)) scale(1.5); opacity: 0; }
-}
-
-/* ── 18. 3D GRID LINES on Hero ── */
+/* ── 17. 3D GRID LINES on Hero ── */
 .hero-grid {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
   background-image:
-    linear-gradient(rgba(212,160,23,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(212,160,23,0.04) 1px, transparent 1px);
+    linear-gradient(rgba(212,160,23,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,160,23,0.05) 1px, transparent 1px);
   background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.65) 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.65) 0%, transparent 72%);
   animation: gridShift 20s linear infinite;
 }
 @keyframes gridShift {
@@ -462,44 +541,44 @@ nav {
   to   { background-position: 60px 60px, 60px 60px; }
 }
 
-/* ── 19. PRELOADER – 3D enhanced ── */
+/* ── 18. PRELOADER – 3D enhanced ── */
 .preloader-logo {
   text-shadow:
     0 1px 0 rgba(255,255,255,0.3),
-    1px 2px 0 rgba(0,0,0,0.2),
-    2px 4px 0 rgba(0,0,0,0.15),
-    3px 6px 10px rgba(0,0,0,0.2),
-    0 0 30px rgba(212,160,23,0.3);
+    1px 2px 0 rgba(0,0,0,0.18),
+    2px 4px 0 rgba(0,0,0,0.12),
+    3px 6px 10px rgba(0,0,0,0.16),
+    0 0 30px rgba(212,160,23,0.28);
   animation: logoPulse3D 2s ease-in-out infinite;
 }
 @keyframes logoPulse3D {
   0%, 100% { letter-spacing: 8px; opacity: 1; }
-  50%       { letter-spacing: 10px; opacity: 0.9; text-shadow: 0 1px 0 rgba(255,255,255,0.3), 1px 2px 0 rgba(0,0,0,0.2), 0 0 50px rgba(212,160,23,0.5); }
+  50%       { letter-spacing: 10px; opacity: 0.92; text-shadow: 0 1px 0 rgba(255,255,255,0.3), 1px 2px 0 rgba(0,0,0,0.18), 0 0 40px rgba(212,160,23,0.45); }
 }
 
-/* ── 20. SECTION REVEAL ANIMATIONS – 3D ── */
-[data-aos="fade-up"] {
-  transform: translateY(40px) rotateX(10deg) !important;
+/* ── 19. SECTION REVEAL ANIMATIONS – 3D (respects .aos-animate!) ── */
+[data-aos="fade-up"]:not(.aos-animate) {
+  transform: translate3d(0, 40px, 0) rotateX(8deg);
 }
-[data-aos="fade-right"] {
-  transform: translateX(-40px) rotateY(-10deg) !important;
+[data-aos="fade-right"]:not(.aos-animate) {
+  transform: translate3d(-40px, 0, 0) rotateY(-8deg);
 }
-[data-aos="fade-left"] {
-  transform: translateX(40px) rotateY(10deg) !important;
+[data-aos="fade-left"]:not(.aos-animate) {
+  transform: translate3d(40px, 0, 0) rotateY(8deg);
 }
 
-/* ── 21. MODAL – 3D Entrance ── */
+/* ── 20. MODAL – 3D Entrance ── */
 .quickview-overlay.open .quickview-modal,
 .auth-overlay.open .auth-modal,
 .checkout-overlay.open .checkout-modal {
   animation: modalPop3D 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards !important;
 }
 @keyframes modalPop3D {
-  0%   { transform: scale(0.7) rotateX(20deg) translateY(40px); opacity: 0; }
+  0%   { transform: scale(0.75) rotateX(18deg) translateY(36px); opacity: 0; }
   100% { transform: scale(1) rotateX(0deg) translateY(0); opacity: 1; }
 }
 
-/* ── 22. CART DRAWER – 3D slide ── */
+/* ── 21. CART DRAWER – 3D slide ── */
 .cart-drawer {
   transform-origin: right center;
 }
@@ -511,17 +590,17 @@ nav {
   100% { right: 0;      opacity: 1; transform: perspective(800px) rotateY(0deg); }
 }
 
-/* ── 23. REVIEWS GRID CARDS ── */
+/* ── 22. REVIEWS GRID CARDS ── */
 #reviewsGrid > div {
-  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.35s;
   transform-style: preserve-3d;
 }
 #reviewsGrid > div:hover {
   transform: translateY(-8px) rotateX(4deg);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 0 20px rgba(201,168,76,0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 0 20px rgba(201,168,76,0.15);
 }
 
-/* ── 24. SECTION BACKGROUND DEPTH ── */
+/* ── 23. SECTION BACKGROUND DEPTH ── */
 .ingredients-section {
   box-shadow: 0 20px 80px rgba(0,0,0,0.3) inset !important;
 }
@@ -529,15 +608,23 @@ nav {
   box-shadow: 0 -20px 80px rgba(0,0,0,0.2) inset !important;
 }
 
-/* ── 25. GLOW CURSOR TRAIL (small dot) ── */
+/* ── 24. GLOW CURSOR TRAIL ── */
 .cursor-glow {
   position: fixed;
-  width: 20px; height: 20px;
+  width: 24px; height: 24px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(212,160,23,0.4) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(212,160,23,0.38) 0%, transparent 70%);
   pointer-events: none;
   z-index: 999999;
   transform: translate(-50%, -50%);
-  transition: transform 0.05s linear, opacity 0.3s;
+  transition: opacity 0.3s;
   mix-blend-mode: screen;
+}
+
+@media (max-width: 768px) {
+  .about-visual { height: 320px !important; }
+  .showcase-3d-stage { width: 190px; height: 190px; }
+  .showcase-pouch { width: 165px; height: 165px; }
+  .showcase-halo { width: 170px; height: 170px; }
+  .showcase-pill { font-size: 10px; padding: 4px 9px; }
 }

@@ -16,6 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/3d-effects.css?v=1">
 <!-- Google Identity Services for Google Login -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -82,8 +83,16 @@
   </div>
 </nav>
 
+<!-- SCROLL PROGRESS BAR -->
+<div id="scrollProgress"></div>
+
+<!-- CURSOR GLOW -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
 <!-- HERO -->
 <section class="hero" id="home">
+  <div class="hero-grid"></div>
+  <canvas id="heroCanvas"></canvas>
   <div class="leaf-bg" id="leafBg"></div>
   <div class="hero-inner">
     <span class="hero-eyebrow">Farm to Cup · 100% Natural</span>
@@ -568,6 +577,7 @@
 
 <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+<script src="js/effects3d.js?v=1"></script>
 <script>
   // Bulletproof Preloader Hide
   window.addEventListener('load', () => {

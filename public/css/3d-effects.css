@@ -1,0 +1,543 @@
+/* ═══════════════════════════════════════════════════════════════
+   FARMERS FARM – 3D PREMIUM EFFECTS  (Presentation Edition)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. GLOBAL 3D PERSPECTIVE LAYER ── */
+:root {
+  --perspective: 1200px;
+  --card-depth: 20px;
+  --neon-gold: rgba(212,160,23,0.8);
+  --neon-green: rgba(90,148,112,0.6);
+}
+
+/* ── 2. ENHANCED NAV – Premium Glass ── */
+nav {
+  background: rgba(13,33,22,0.60) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(184,134,11,0.25) !important;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.3),
+    0 1px 0 rgba(255,255,255,0.05) inset !important;
+}
+
+/* Nav logo 3D text shadow */
+.nav-logo span:first-child {
+  text-shadow:
+    1px 1px 0 rgba(184,134,11,0.4),
+    2px 2px 0 rgba(184,134,11,0.3),
+    3px 3px 0 rgba(184,134,11,0.2),
+    0 0 20px rgba(184,134,11,0.3);
+  letter-spacing: 3px;
+}
+
+/* ── 3. HERO SECTION – 3D Depth Layer ── */
+.hero {
+  perspective: var(--perspective);
+  transform-style: preserve-3d;
+}
+
+/* Floating 3D grid lines */
+.hero::before {
+  background: radial-gradient(ellipse at 70% 30%, rgba(212,160,23,0.25), transparent 65%) !important;
+  animation: orbFloat3D 20s ease-in-out infinite !important;
+  opacity: 0.25 !important;
+}
+.hero::after {
+  background: radial-gradient(ellipse at 30% 70%, rgba(90,148,112,0.25), transparent 65%) !important;
+  animation: orbFloat3D 28s ease-in-out infinite reverse !important;
+  opacity: 0.2 !important;
+}
+
+@keyframes orbFloat3D {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(20px,-30px) scale(1.05); }
+  66%  { transform: translate(-15px, 20px) scale(0.95); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+/* Hero inner – 3D float */
+.hero-inner {
+  transform-style: preserve-3d;
+  animation: heroFloat3D 8s ease-in-out infinite;
+}
+@keyframes heroFloat3D {
+  0%, 100% { transform: translateY(0) rotateX(0deg); }
+  50%       { transform: translateY(-10px) rotateX(1deg); }
+}
+
+/* Hero title – 3D extrusion */
+.hero-title {
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.1),
+    1px 2px 0 rgba(0,0,0,0.3),
+    2px 4px 0 rgba(0,0,0,0.25),
+    3px 6px 0 rgba(0,0,0,0.2),
+    4px 8px 10px rgba(0,0,0,0.3),
+    0 0 40px rgba(212,160,23,0.15) !important;
+}
+
+.hero-title em {
+  text-shadow:
+    0 1px 0 rgba(212,160,23,0.3),
+    1px 2px 0 rgba(184,134,11,0.3),
+    2px 4px 0 rgba(184,134,11,0.2),
+    3px 6px 0 rgba(184,134,11,0.15),
+    0 0 30px rgba(212,160,23,0.4) !important;
+  animation: goldPulse 3s ease-in-out infinite;
+}
+@keyframes goldPulse {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 10px rgba(212,160,23,0.3)); }
+  50%       { filter: brightness(1.1) drop-shadow(0 0 25px rgba(212,160,23,0.6)); }
+}
+
+/* Hero sub text neon glow */
+.hero-sub {
+  text-shadow:
+    0 0 10px rgba(212,160,23,0.4),
+    0 0 20px rgba(212,160,23,0.2),
+    0 0 40px rgba(212,160,23,0.1) !important;
+}
+
+/* CTA Buttons – 3D Press Effect */
+.btn-primary {
+  position: relative;
+  transform: translateZ(0);
+  box-shadow:
+    0 4px 15px rgba(201,168,76,0.3),
+    0 6px 0 rgba(140,100,5,0.6),
+    0 8px 15px rgba(0,0,0,0.3) !important;
+  transition: all 0.2s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+}
+.btn-primary:hover {
+  transform: translateY(-3px) !important;
+  box-shadow:
+    0 8px 25px rgba(201,168,76,0.5),
+    0 10px 0 rgba(140,100,5,0.6),
+    0 15px 25px rgba(0,0,0,0.3) !important;
+}
+.btn-primary:active {
+  transform: translateY(4px) !important;
+  box-shadow:
+    0 1px 5px rgba(201,168,76,0.3),
+    0 2px 0 rgba(140,100,5,0.6) !important;
+}
+
+.btn-outline {
+  box-shadow: 0 0 0 1px rgba(228,237,231,0.3), 0 4px 20px rgba(0,0,0,0.2) !important;
+  transition: all 0.2s !important;
+}
+.btn-outline:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 0 20px rgba(201,168,76,0.3), 0 8px 25px rgba(0,0,0,0.2) !important;
+}
+.btn-outline:active { transform: translateY(2px) !important; }
+
+/* ── 4. HERO PARTICLE CANVAS ── */
+#heroCanvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-inner { position: relative; z-index: 2; }
+
+/* ── 5. ABOUT SECTION – 3D Card ── */
+.about-visual {
+  perspective: 800px;
+  transform-style: preserve-3d !important;
+  transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+  box-shadow:
+    0 20px 60px rgba(44,74,53,0.2),
+    0 0 0 1px rgba(184,134,11,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+.about-visual:hover {
+  transform: rotateY(5deg) rotateX(-3deg) scale(1.02) !important;
+  box-shadow:
+    20px 30px 80px rgba(44,74,53,0.3),
+    0 0 0 1px rgba(184,134,11,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+
+/* Big tea cup 3D animation */
+.big-leaf {
+  animation: teaBrew3D 5s ease-in-out infinite !important;
+  filter: drop-shadow(0 10px 30px rgba(201,168,76,0.4)) drop-shadow(0 0 60px rgba(201,168,76,0.2)) !important;
+}
+@keyframes teaBrew3D {
+  0%, 100% {
+    transform: translateY(0) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 10px 30px rgba(201,168,76,0.3)) drop-shadow(0 0 40px rgba(201,168,76,0.15));
+  }
+  25% {
+    transform: translateY(-8px) rotateY(15deg) scale(1.05);
+    filter: drop-shadow(0 20px 40px rgba(201,168,76,0.5)) drop-shadow(0 0 60px rgba(201,168,76,0.3));
+  }
+  75% {
+    transform: translateY(-4px) rotateY(-10deg) scale(1.03);
+    filter: drop-shadow(0 15px 35px rgba(201,168,76,0.4)) drop-shadow(0 0 50px rgba(201,168,76,0.2));
+  }
+}
+
+/* Stats – 3D pop */
+.stat {
+  transition: transform 0.3s;
+  cursor: default;
+}
+.stat:hover {
+  transform: translateY(-6px) scale(1.1);
+}
+.stat-num {
+  background: linear-gradient(180deg, var(--green-deep), var(--green-mid));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(2px 3px 0 rgba(44,74,53,0.3));
+}
+
+/* ── 6. INGREDIENTS SECTION – Flip Cards ── */
+.ing-card {
+  transform-style: preserve-3d;
+  position: relative;
+  cursor: pointer;
+  min-height: 200px;
+}
+
+/* Enhanced ing-card hover */
+.ing-card:hover {
+  background: rgba(212,160,23,0.18) !important;
+  border-color: rgba(212,160,23,0.6) !important;
+  transform: translateY(-10px) rotateX(5deg) rotateZ(-1deg) !important;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.4),
+    0 0 30px rgba(212,160,23,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+.ing-card:hover .ing-icon {
+  transform: scale(1.3) rotateY(360deg) !important;
+  transition: transform 0.6s !important;
+}
+.ing-name {
+  text-shadow: 0 0 10px rgba(212,160,23,0.3);
+}
+
+/* ── 7. PRODUCT / PACKET CARDS – 3D Premium ── */
+.packet-card {
+  transform-style: preserve-3d;
+  transition:
+    transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94),
+    box-shadow 0.4s !important;
+  box-shadow:
+    0 4px 24px rgba(44,74,53,0.08),
+    0 1px 0 rgba(255,255,255,0.8) inset !important;
+  will-change: transform;
+}
+
+/* Shimmer effect on card top */
+.packet-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255,255,255,0.15) 50%,
+    transparent 60%
+  );
+  transition: left 0.5s;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: 16px;
+}
+.packet-card:hover::after { left: 150%; }
+
+.packet-card:hover {
+  transform: translateY(-12px) !important;
+  box-shadow:
+    0 30px 70px rgba(44,74,53,0.22),
+    0 0 0 1px rgba(184,134,11,0.4),
+    0 0 30px rgba(184,134,11,0.15),
+    0 1px 0 rgba(255,255,255,0.8) inset !important;
+}
+
+.packet-card.popular {
+  box-shadow:
+    0 4px 24px rgba(201,168,76,0.15),
+    0 0 0 2px var(--gold),
+    0 0 20px rgba(201,168,76,0.2) !important;
+}
+.packet-card.popular:hover {
+  box-shadow:
+    0 30px 70px rgba(44,74,53,0.25),
+    0 0 0 2px var(--gold),
+    0 0 40px rgba(201,168,76,0.4) !important;
+}
+
+/* Product image – 3D float */
+.packet-image {
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
+  transition: transform 0.4s, filter 0.4s !important;
+}
+.packet-card:hover .packet-image {
+  transform: scale(1.12) translateY(-6px) rotateY(5deg) !important;
+  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)) !important;
+}
+
+/* Add to Cart button – 3D press */
+.add-btn {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 0 rgba(27,58,45,0.3), 0 6px 15px rgba(0,0,0,0.1);
+  transition: all 0.2s !important;
+}
+.add-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
+  pointer-events: none;
+}
+.add-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 rgba(27,58,45,0.3) !important;
+}
+
+/* Popular badge – 3D shimmer */
+.popular-badge {
+  animation: badgePulse 2.5s ease-in-out infinite;
+  box-shadow: 0 2px 10px rgba(201,168,76,0.4), 0 0 20px rgba(201,168,76,0.2) !important;
+}
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 2px 10px rgba(201,168,76,0.4), 0 0 10px rgba(201,168,76,0.2); }
+  50%       { box-shadow: 0 2px 15px rgba(201,168,76,0.7), 0 0 25px rgba(201,168,76,0.5); }
+}
+
+/* ── 8. TESTIMONIAL / REVIEW CARDS – 3D Hover ── */
+.testimonial-card {
+  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+  transform-style: preserve-3d;
+}
+.testimonial-card:hover {
+  transform: translateY(-8px) rotateX(3deg) !important;
+  box-shadow:
+    0 20px 50px rgba(44,74,53,0.18),
+    0 0 0 1px rgba(184,134,11,0.3),
+    0 0 20px rgba(184,134,11,0.1) !important;
+  border-color: var(--gold) !important;
+}
+.testimonial-stars {
+  animation: starPop 0.4s;
+  display: inline-block;
+}
+.testimonial-card:hover .testimonial-stars {
+  filter: drop-shadow(0 0 6px rgba(212,160,23,0.8));
+}
+
+/* ── 9. CONTACT CARDS – 3D Glow ── */
+.contact-card {
+  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+  transform-style: preserve-3d;
+}
+.contact-card:hover {
+  transform: translateY(-8px) rotateX(5deg) !important;
+  box-shadow:
+    0 20px 50px rgba(27,58,45,0.15),
+    0 0 30px rgba(201,168,76,0.15) !important;
+  border-color: var(--gold) !important;
+}
+
+/* ── 10. LOC ITEMS – Slide 3D ── */
+.loc-item {
+  transform-style: preserve-3d;
+  transition: all 0.35s cubic-bezier(0.25,0.46,0.45,0.94) !important;
+}
+.loc-item:hover {
+  transform: translateX(10px) rotateY(-3deg) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12), -4px 0 20px rgba(201,168,76,0.2) !important;
+}
+
+/* ── 11. SECTION TITLES – 3D Text ── */
+.section-title {
+  text-shadow:
+    1px 1px 0 rgba(44,74,53,0.15),
+    2px 2px 0 rgba(44,74,53,0.1),
+    0 0 30px rgba(44,74,53,0.05);
+}
+.ingredients-section .section-title {
+  text-shadow:
+    1px 1px 0 rgba(255,255,255,0.1),
+    2px 2px 0 rgba(0,0,0,0.2),
+    0 0 30px rgba(212,160,23,0.2) !important;
+}
+
+/* ── 12. FOOTER SOCIALS – 3D Pop ── */
+.footer-socials a:hover {
+  transform: scale(1.4) translateY(-4px) rotateZ(-10deg) !important;
+  filter: drop-shadow(0 4px 8px rgba(201,168,76,0.4));
+}
+
+/* ── 13. WHATSAPP FLOAT – 3D Pulse ── */
+.whatsapp-float {
+  animation: waPulse 3s ease-in-out infinite;
+  box-shadow: 0 4px 20px rgba(37,211,102,0.5), 0 0 0 0 rgba(37,211,102,0.4) !important;
+}
+@keyframes waPulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(37,211,102,0.4), 0 0 0 0 rgba(37,211,102,0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(37,211,102,0.6), 0 0 0 10px rgba(37,211,102,0);
+    transform: scale(1.05);
+  }
+}
+
+/* ── 14. TOAST – 3D Entrance ── */
+.toast.show {
+  animation: toastPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards !important;
+}
+@keyframes toastPop {
+  0%   { transform: translateX(-50%) translateY(80px) scale(0.8) rotateX(20deg); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0) scale(1) rotateX(0deg); opacity: 1; }
+}
+
+/* ── 15. BACK TO TOP – 3D ── */
+.back-to-top {
+  box-shadow: 0 4px 0 rgba(0,0,0,0.3), 0 6px 20px rgba(0,0,0,0.3) !important;
+}
+.back-to-top:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 8px 0 rgba(0,0,0,0.3), 0 12px 25px rgba(201,168,76,0.4) !important;
+}
+.back-to-top:active {
+  transform: translateY(2px) !important;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3) !important;
+}
+
+/* ── 16. SCROLL PROGRESS BAR ── */
+#scrollProgress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--green-leaf), var(--gold), var(--gold-bright));
+  z-index: 99999;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px rgba(212,160,23,0.5);
+}
+
+/* ── 17. FLOATING PARTICLES ── */
+.hero-particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  animation: particleDrift linear infinite;
+  opacity: 0;
+}
+@keyframes particleDrift {
+  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateY(-10vh) translateX(var(--drift, 0px)) scale(1.5); opacity: 0; }
+}
+
+/* ── 18. 3D GRID LINES on Hero ── */
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(212,160,23,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,160,23,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 70%);
+  animation: gridShift 20s linear infinite;
+}
+@keyframes gridShift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 60px 60px, 60px 60px; }
+}
+
+/* ── 19. PRELOADER – 3D enhanced ── */
+.preloader-logo {
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.3),
+    1px 2px 0 rgba(0,0,0,0.2),
+    2px 4px 0 rgba(0,0,0,0.15),
+    3px 6px 10px rgba(0,0,0,0.2),
+    0 0 30px rgba(212,160,23,0.3);
+  animation: logoPulse3D 2s ease-in-out infinite;
+}
+@keyframes logoPulse3D {
+  0%, 100% { letter-spacing: 8px; opacity: 1; }
+  50%       { letter-spacing: 10px; opacity: 0.9; text-shadow: 0 1px 0 rgba(255,255,255,0.3), 1px 2px 0 rgba(0,0,0,0.2), 0 0 50px rgba(212,160,23,0.5); }
+}
+
+/* ── 20. SECTION REVEAL ANIMATIONS – 3D ── */
+[data-aos="fade-up"] {
+  transform: translateY(40px) rotateX(10deg) !important;
+}
+[data-aos="fade-right"] {
+  transform: translateX(-40px) rotateY(-10deg) !important;
+}
+[data-aos="fade-left"] {
+  transform: translateX(40px) rotateY(10deg) !important;
+}
+
+/* ── 21. MODAL – 3D Entrance ── */
+.quickview-overlay.open .quickview-modal,
+.auth-overlay.open .auth-modal,
+.checkout-overlay.open .checkout-modal {
+  animation: modalPop3D 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards !important;
+}
+@keyframes modalPop3D {
+  0%   { transform: scale(0.7) rotateX(20deg) translateY(40px); opacity: 0; }
+  100% { transform: scale(1) rotateX(0deg) translateY(0); opacity: 1; }
+}
+
+/* ── 22. CART DRAWER – 3D slide ── */
+.cart-drawer {
+  transform-origin: right center;
+}
+.cart-drawer.open {
+  animation: drawerSlide3D 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards !important;
+}
+@keyframes drawerSlide3D {
+  0%   { right: -420px; opacity: 0; transform: perspective(800px) rotateY(-15deg); }
+  100% { right: 0;      opacity: 1; transform: perspective(800px) rotateY(0deg); }
+}
+
+/* ── 23. REVIEWS GRID CARDS ── */
+#reviewsGrid > div {
+  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  transform-style: preserve-3d;
+}
+#reviewsGrid > div:hover {
+  transform: translateY(-8px) rotateX(4deg);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 0 20px rgba(201,168,76,0.1);
+}
+
+/* ── 24. SECTION BACKGROUND DEPTH ── */
+.ingredients-section {
+  box-shadow: 0 20px 80px rgba(0,0,0,0.3) inset !important;
+}
+.feedback-section {
+  box-shadow: 0 -20px 80px rgba(0,0,0,0.2) inset !important;
+}
+
+/* ── 25. GLOW CURSOR TRAIL (small dot) ── */
+.cursor-glow {
+  position: fixed;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,160,23,0.4) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 999999;
+  transform: translate(-50%, -50%);
+  transition: transform 0.05s linear, opacity 0.3s;
+  mix-blend-mode: screen;
+}

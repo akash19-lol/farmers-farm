@@ -161,6 +161,61 @@ const adminLoginLimiter = rateLimit({
   message: { error: 'Too many login attempts from this IP, please try again after an hour' }
 });
 
+// Customer Token & Auth Setup (JWT)
+const CUSTOMER_TOKEN_SECRET = process.env.CUSTOMER_TOKEN_SECRET || process.env.ADMIN_TOKEN_SECRET || 'ff_customer_token_secret_key_2026';
+
+function generateCustomerToken(customer) {
+  return jwt.sign(
+    { id: customer.id || customer._id, email: (customer.email || '').toLowerCase().trim() },
+    CUSTOMER_TOKEN_SECRET,
+    { expiresIn: '30d' }
+  );
+}
+
+const verifyCustomer = (req, res, next) => {
+  const cookieToken = req.cookies?.customerToken;
+  const authHeader = req.headers['authorization'];
+  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader;
+  const token = cookieToken || (headerToken && headerToken !== 'null' && headerToken !== 'undefined' ? headerToken : null);
+
+  // If Admin is authenticated, allow access to customer resource
+  const adminCookie = req.cookies?.adminToken;
+  if (adminCookie || (authHeader && authHeader.includes('Bearer '))) {
+    try {
+      const decodedAdmin = jwt.verify(token || adminCookie, ADMIN_TOKEN_SECRET);
+      if (decodedAdmin) {
+        req.isAdmin = true;
+        return next();
+      }
+    } catch {}
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Please log in to perform this action.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, CUSTOMER_TOKEN_SECRET);
+    req.customer = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Session expired or invalid. Please log in again.' });
+  }
+};
+
+// Strict Rate Limiters for OTP Endpoints
+const otpRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 5, // max 5 OTP requests per 15 mins per IP
+  message: { error: 'Too many OTP requests. Please wait 15 minutes before requesting again.' }
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 10, // max 10 verify attempts to prevent brute force
+  message: { error: 'Too many incorrect attempts. Please request a new OTP.' }
+});
+
 // --- ADMIN LOGIN (Email + Password) ---
 const ADMIN_CREDENTIALS = [
   { email: (process.env.ADMIN_EMAIL || 'admin@farmersfarm.in').toLowerCase(), pass: process.env.ADMIN_PASS },
@@ -431,7 +486,7 @@ router.post('/cart/sync', async (req, res) => {
 });
 
 // --- ORDERS ---
-router.get('/orders', async (req, res) => {
+router.get('/orders', verifyAdmin, async (req, res) => {
   try {
     // Return newest orders first
     const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').get();
@@ -455,26 +510,108 @@ router.get('/orders', async (req, res) => {
 });
 
 router.post('/orders', async (req, res) => {
-  const order = req.body;
-  order.status = 'Pending';
-  order.createdAt = admin.firestore.FieldValue.serverTimestamp();
-
   try {
-    // Save order using its generated ORD-XXXX ID as the document ID
-    await db.collection('orders').doc(order.id).set(order);
+    const { items, customer, shipping, paymentMethod, paymentId, total, promoCode } = req.body;
     
-    // Clear abandoned cart if it exists
-    if (order.customer?.email) {
-      await db.collection('abandoned_carts').doc(order.customer.email).delete().catch(() => {});
+    // 1. Validation
+    if (!customer || !customer.email || !customer.name) {
+      return res.status(400).json({ error: 'Customer name and email are required.' });
     }
+    if (!shipping || !shipping.address) {
+      return res.status(400).json({ error: 'Shipping address is required.' });
+    }
+
+    // 2. Prevent Negative Quantity Exploit
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Order must contain at least one item.' });
+    }
+
+    for (const item of items) {
+      const qty = parseInt(item.qty || item.quantity, 10);
+      if (!Number.isInteger(qty) || qty <= 0 || qty > 100) {
+        return res.status(400).json({ error: `Invalid quantity for ${item.name || 'product'}. Must be between 1 and 100.` });
+      }
+      const price = parseFloat(item.price);
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({ error: `Invalid price for ${item.name || 'product'}.` });
+      }
+    }
+
+    // 3. Server-side Subtotal & Discount Recalculation (Price Manipulation Protection)
+    const calculatedSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) * parseInt(item.qty, 10)), 0);
     
+    let calculatedDiscount = 0;
+    if (promoCode) {
+      try {
+        const promoDoc = await db.collection('promos').doc(promoCode.toUpperCase().trim()).get();
+        if (promoDoc.exists && promoDoc.data().active) {
+          calculatedDiscount = Math.round((calculatedSubtotal * promoDoc.data().discountPercentage) / 100);
+        }
+      } catch (err) {
+        console.warn('Promo check error:', err);
+      }
+    }
+
+    const expectedTotal = Math.max(0, calculatedSubtotal - calculatedDiscount);
+
+    // Verify client total matches within rounding threshold
+    const clientTotal = parseFloat(total);
+    if (!isNaN(clientTotal) && Math.abs(clientTotal - expectedTotal) > 5) {
+      return res.status(400).json({ 
+        error: `Price verification failed. Expected: ₹${expectedTotal}, received: ₹${clientTotal}.` 
+      });
+    }
+
+    // 4. Secure Order ID & Mass Assignment Sanitization
+    const crypto = require('crypto');
+    const orderId = req.body.id && /^ORD-[A-Za-z0-9]{4,10}$/.test(req.body.id) 
+      ? req.body.id 
+      : 'ORD-' + crypto.randomInt(10000, 99999);
+
+    const sanitizedOrder = {
+      id: orderId,
+      date: new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }),
+      items: items.map(i => ({
+        id: String(i.id || ''),
+        name: String(i.name || ''),
+        weight: String(i.weight || i.size || ''),
+        price: parseFloat(i.price),
+        qty: parseInt(i.qty, 10)
+      })),
+      subtotal: calculatedSubtotal,
+      discount: calculatedDiscount,
+      total: expectedTotal,
+      paymentMethod: String(paymentMethod || 'Cash on Delivery'),
+      paymentId: paymentId ? String(paymentId) : null,
+      status: 'Pending',
+      customer: {
+        name: String(customer.name).slice(0, 100),
+        email: String(customer.email).toLowerCase().trim().slice(0, 100),
+        phone: String(customer.phone || '').slice(0, 20)
+      },
+      shipping: {
+        address: String(shipping.address).slice(0, 300),
+        city: String(shipping.city || '').slice(0, 100),
+        pin: String(shipping.pin || '').slice(0, 10)
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Save order
+    await db.collection('orders').doc(orderId).set(sanitizedOrder);
+
+    // Clear abandoned cart if it exists
+    if (sanitizedOrder.customer?.email) {
+      await db.collection('abandoned_carts').doc(sanitizedOrder.customer.email).delete().catch(() => {});
+    }
+
     // Send Order Confirmation Email
-    const email = order.customer?.email;
-    const subject = `Order Confirmed - Farmers Farm (#${order.id})`;
-    const message = `Hi ${order.customer?.name || 'Customer'},\n\nYour order #${order.id} for Farmers Farm has been confirmed! 🌿\n\nTotal: ₹${order.total.toLocaleString('en-IN')}\nPayment: ${order.paymentMethod}\n\nWe will notify you once it's shipped. Thank you!`;
+    const email = sanitizedOrder.customer?.email;
+    const subject = `Order Confirmed - Farmers Farm (#${sanitizedOrder.id})`;
+    const message = `Hi ${sanitizedOrder.customer.name},\n\nYour order #${sanitizedOrder.id} for Farmers Farm has been confirmed! 🌿\n\nTotal: ₹${sanitizedOrder.total.toLocaleString('en-IN')}\nPayment: ${sanitizedOrder.paymentMethod}\n\nWe will notify you once it's shipped. Thank you!`;
     sendOrderEmail(email, subject, message);
 
-    res.json({ success: true, order });
+    res.json({ success: true, order: sanitizedOrder });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -522,8 +659,11 @@ router.put('/orders/:id/status', verifyAdmin, async (req, res) => {
   }
 });
 
-router.get('/orders/customer/:email', async (req, res) => {
-  const { email } = req.params;
+router.get('/orders/customer/:email', verifyCustomer, async (req, res) => {
+  const email = (req.params.email || '').toLowerCase().trim();
+  if (!req.isAdmin && req.customer?.email !== email) {
+    return res.status(403).json({ error: 'Forbidden: You cannot access another customer\'s orders.' });
+  }
   try {
     const snapshot = await db.collection('orders').where('customer.email', '==', email).get();
     const orders = [];
@@ -746,7 +886,7 @@ router.delete('/admin/blogs/:id', verifyAdmin, async (req, res) => {
 });
 
 // --- CUSTOMERS ---
-router.get('/customers', async (req, res) => {
+router.get('/customers', verifyAdmin, async (req, res) => {
   try {
     const snapshot = await db.collection('customers').get();
     const customers = [];
@@ -782,7 +922,7 @@ router.post('/customers', async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
     const docRef = await db.collection('customers').add(customer);
-    res.json({ success: true, customer: sanitizeCustomer({ id: docRef.id, ...customer }) });
+    const custData = sanitizeCustomer({ id: docRef.id, ...customer }); res.json({ success: true, customer: custData, token: generateCustomerToken(custData) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -819,14 +959,14 @@ router.post('/customers/login', async (req, res) => {
       return res.status(401).json({ error: 'Incorrect password' });
     }
 
-    res.json({ success: true, customer: sanitizeCustomer({ id: doc.id, ...data }) });
+    const custData = sanitizeCustomer({ id: doc.id, ...data }); res.json({ success: true, customer: custData, token: generateCustomerToken(custData) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // --- CUSTOMER AUTH: OTP ---
-router.post('/customers/request-otp', async (req, res) => {
+router.post('/customers/request-otp', otpRequestLimiter, async (req, res) => {
   const email = (req.body.email || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ error: 'Email is required' });
   
@@ -863,7 +1003,7 @@ router.post('/customers/request-otp', async (req, res) => {
   }
 });
 
-router.post('/customers/verify-otp', async (req, res) => {
+router.post('/customers/verify-otp', otpVerifyLimiter, async (req, res) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: 'Email and OTP are required' });
@@ -889,7 +1029,7 @@ router.post('/customers/verify-otp', async (req, res) => {
     } else {
       snapshot.forEach(doc => { customerData = { id: doc.id, ...doc.data() }; });
     }
-    res.json({ success: true, customer: sanitizeCustomer(customerData) });
+    const custData = sanitizeCustomer(customerData); res.json({ success: true, customer: custData, token: generateCustomerToken(custData) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -942,7 +1082,7 @@ router.post('/customers/google-login', async (req, res) => {
       await doc.ref.update(updates).catch(() => {});
       customerData = { id: doc.id, ...existing, ...updates };
     }
-    res.json({ success: true, customer: sanitizeCustomer(customerData) });
+    const custData = sanitizeCustomer(customerData); res.json({ success: true, customer: custData, token: generateCustomerToken(custData) });
   } catch (error) {
     console.error('Google Auth Error:', error.message || error);
     res.status(401).json({ error: 'Google authentication failed. Please verify GOOGLE_CLIENT_ID and authorized origins.' });
@@ -965,8 +1105,11 @@ router.post('/customers/:email/wishlist', async (req, res) => {
   }
 });
 
-router.get('/customers/:email/wishlist', async (req, res) => {
+router.get('/customers/:email/wishlist', verifyCustomer, async (req, res) => {
   const email = req.params.email.toLowerCase();
+  if (!req.isAdmin && req.customer?.email !== email) {
+    return res.status(403).json({ error: 'Forbidden.' });
+  }
   try {
     const snapshot = await db.collection('customers').where('email', '==', email).get();
     if (snapshot.empty) return res.status(404).json({ error: 'Customer not found' });
@@ -978,15 +1121,27 @@ router.get('/customers/:email/wishlist', async (req, res) => {
   }
 });
 
-router.put('/customers/:email', async (req, res) => {
-  const email = req.params.email.toLowerCase();
-  const updateData = req.body;
+router.put('/customers/:email', verifyCustomer, async (req, res) => {
+  const email = req.params.email.toLowerCase().trim();
+  if (!req.isAdmin && req.customer?.email !== email) {
+    return res.status(403).json({ error: 'Forbidden: Cannot edit another customer\'s profile.' });
+  }
+
+  // Mass Assignment Protection - Explicit Allowlist
+  const { name, phone, address, city, pin } = req.body;
+  const sanitizedUpdate = {};
+  if (name !== undefined) sanitizedUpdate.name = String(name).slice(0, 100);
+  if (phone !== undefined) sanitizedUpdate.phone = String(phone).slice(0, 20);
+  if (address !== undefined) sanitizedUpdate.address = String(address).slice(0, 300);
+  if (city !== undefined) sanitizedUpdate.city = String(city).slice(0, 100);
+  if (pin !== undefined) sanitizedUpdate.pin = String(pin).slice(0, 10);
+
   try {
     const snapshot = await db.collection('customers').where('email', '==', email).get();
     if (snapshot.empty) return res.status(404).json({ error: 'Customer not found' });
     
     const customerId = snapshot.docs[0].id;
-    await db.collection('customers').doc(customerId).update(updateData);
+    await db.collection('customers').doc(customerId).update(sanitizedUpdate);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -994,7 +1149,7 @@ router.put('/customers/:email', async (req, res) => {
 });
 
 // --- FEEDBACKS ---
-router.get('/feedbacks', async (req, res) => {
+router.get('/feedbacks', verifyAdmin, async (req, res) => {
   try {
     const snapshot = await db.collection('feedbacks').orderBy('createdAt', 'desc').get();
     const feedbacks = [];

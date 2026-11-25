@@ -1,3 +1,14 @@
+// Security Utility: XSS Output Encoding
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /* ═══════════════════════════════════════════════════════════════
    FARMERS FARM – 7 TEA AM  |  Main Application JS
    Customer Auth + Cart + Orders + Animations
@@ -77,8 +88,9 @@ function getLoggedInCustomer() {
   const customerJSON = localStorage.getItem('ff_customer_session');
   return customerJSON ? JSON.parse(customerJSON) : null;
 }
-function loginCustomer(customer) {
+function loginCustomer(customer, token) {
   localStorage.setItem('ff_customer_session', JSON.stringify(customer));
+  if (token) localStorage.setItem('ff_customer_token', token);
   if (Array.isArray(customer.wishlist)) {
     localStorage.setItem('ff_wishlist', JSON.stringify(customer.wishlist));
   } else {
@@ -98,6 +110,7 @@ function loginCustomer(customer) {
 }
 function logoutCustomer() {
   localStorage.removeItem('ff_customer_session');
+  localStorage.removeItem('ff_customer_token');
   localStorage.removeItem('ff_wishlist');
   renderProducts();
 }
@@ -849,7 +862,7 @@ window.openMyOrdersModal = async function() {
   container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--mist);">⏳ Loading orders...</div>';
   
   try {
-    const res = await fetch('/api/orders/customer/' + encodeURIComponent(customer.email));
+    const token = localStorage.getItem('ff_customer_token'); const res = await fetch('/api/orders/customer/' + encodeURIComponent(customer.email), { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
     const orders = await res.json();
     
     if (orders.length === 0) {
@@ -953,8 +966,15 @@ window.reorderItems = function(orderId) {
 };
 
 // ── CUSTOMER AUTH ──
-function handleLoginSuccess(customer, welcomePrefix = '👋 Welcome, ') {
-  loginCustomer(customer);
+function handleLoginSuccess(customer, tokenOrPrefix = '👋 Welcome, ', welcomePrefix = '👋 Welcome, ') {
+  let token = null;
+  let prefix = welcomePrefix;
+  if (typeof tokenOrPrefix === 'string' && (tokenOrPrefix.startsWith('eyJ') || tokenOrPrefix.length > 30)) {
+    token = tokenOrPrefix;
+  } else if (typeof tokenOrPrefix === 'string') {
+    prefix = tokenOrPrefix;
+  }
+  loginCustomer(customer, token);
   updateAuthUI();
   showToast(welcomePrefix + (customer.name || customer.email) + '!');
   if (window.location.pathname.includes('login')) {
@@ -1078,7 +1098,7 @@ function initCustomerAuth() {
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          handleLoginSuccess(data.customer, '👋 Welcome back, ');
+          handleLoginSuccess(data.customer, data.token, '👋 Welcome back, ');
         } else {
           showAuthError(data.error || 'Invalid email or password.');
         }
@@ -1111,7 +1131,7 @@ function initCustomerAuth() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        handleLoginSuccess(data.customer);
+        handleLoginSuccess(data.customer, data.token);
       } else {
         showAuthError(data.error || 'Invalid or expired OTP.');
       }
@@ -1153,7 +1173,7 @@ function initCustomerAuth() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        handleLoginSuccess(data.customer, '🎉 Welcome to Farmers Farm, ');
+        handleLoginSuccess(data.customer, data.token, '🎉 Welcome to Farmers Farm, ');
       } else {
         showAuthError(data.error || 'Signup failed.');
       }
@@ -1276,7 +1296,7 @@ window.handleGoogleLogin = async function(response) {
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      handleLoginSuccess(data.customer);
+      handleLoginSuccess(data.customer, data.token);
     } else {
       showAuthError(data.error || 'Google login failed.');
     }
@@ -1611,7 +1631,7 @@ async function fetchAndRenderMyOrders() {
   container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--gold);">Loading your orders...</div>';
   
   try {
-    const res = await fetch('/api/orders/customer/' + encodeURIComponent(customer.email));
+    const token = localStorage.getItem('ff_customer_token'); const res = await fetch('/api/orders/customer/' + encodeURIComponent(customer.email), { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error('Network response was not ok');
     const orders = await res.json();
     

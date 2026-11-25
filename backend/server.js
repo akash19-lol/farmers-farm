@@ -12,6 +12,16 @@ const app = express();
 app.use(cookieParser());
 const PORT = process.env.PORT || 3000;
 
+// ── Security Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=()');
+  next();
+});
+
 // ── CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
@@ -26,7 +36,7 @@ app.use(cors({
   origin: function (origin, callback) {
     if (!origin || 
         allowedOrigins.includes(origin) || 
-        origin.endsWith('railway.app') || 
+        (origin.endsWith('.railway.app') && origin.includes('farmers')) || 
         (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1')))) {
       callback(null, true);
     } else {

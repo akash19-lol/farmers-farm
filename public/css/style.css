@@ -1680,3 +1680,150 @@ select option {
   border-color: var(--gold-light) !important;
   box-shadow: 0 4px 20px rgba(212, 160, 23, 0.3) !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE ORDER NOTIFICATION POPUP (Dark Emerald Luxury)
+   ═══════════════════════════════════════════════════════════════ */
+#liveOrderPopup,
+.live-order-popup {
+  position: fixed !important;
+  bottom: 24px !important;
+  background: rgba(14, 24, 17, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  padding: 14px 20px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.75), 0 0 20px rgba(212, 160, 23, 0.2) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  z-index: 99999 !important;
+  border: 1px solid rgba(212, 160, 23, 0.35) !important;
+  border-left: 4px solid var(--gold) !important;
+  cursor: pointer !important;
+  width: max-content !important;
+  max-width: 320px !important;
+  transition: left 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.2s ease !important;
+}
+
+#liveOrderPopup:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(212, 160, 23, 0.3) !important;
+}
+
+#liveOrderPopup .live-order-icon {
+  font-size: 26px !important;
+  filter: drop-shadow(0 2px 8px rgba(212, 160, 23, 0.4)) !important;
+}
+
+#liveOrderPopup .live-order-label,
+#liveOrderPopup div > div:first-child {
+  font-size: 10px !important;
+  color: var(--gold-light) !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.2px !important;
+  margin-bottom: 2px !important;
+}
+
+#liveOrderText,
+#liveOrderPopup .live-order-text {
+  font-size: 13px !important;
+  color: #FAF6ED !important;
+  font-family: 'Inter', sans-serif !important;
+  line-height: 1.35 !important;
+  font-weight: 500 !important;
+}
+
+#liveOrderText b,
+#liveOrderText strong,
+#liveOrderText span {
+  color: var(--gold-bright) !important;
+  font-weight: 700 !important;
+}
+
+#liveOrderTime,
+#liveOrderPopup .live-order-time {
+  font-size: 11px !important;
+  color: var(--mist) !important;
+  margin-top: 4px !important;
+  opacity: 0.9 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL INPUTS & MODALS DARK OVERRIDES
+   ═══════════════════════════════════════════════════════════════ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+textarea,
+select {
+  background: rgba(18, 30, 21, 0.92) !important;
+  border: 1px solid rgba(212, 160, 23, 0.28) !important;
+  color: #FAF6ED !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--gold-light) !important;
+  background: rgba(22, 38, 26, 0.98) !important;
+  box-shadow: 0 0 18px rgba(212, 160, 23, 0.35) !important;
+  color: #FFFFFF !important;
+  outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(226, 218, 203, 0.45) !important;
+}
+
+select option {
+  background: #142217 !important;
+  color: #FAF6ED !important;
+}
+
+/* Chrome autofill bulletproof dark override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #132217 inset !important;
+  box-shadow: 0 0 0 1000px #132217 inset !important;
+  -webkit-text-fill-color: #FAF6ED !important;
+  color: #FAF6ED !important;
+  border: 1px solid rgba(212, 160, 23, 0.45) !important;
+  caret-color: #FAF6ED !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+.auth-modal,
+.checkout-modal,
+.quickview-modal,
+.address-modal,
+.modal-content {
+  background: rgba(14, 25, 17, 0.97) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(212, 160, 23, 0.3) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 25px rgba(212,160,23,0.12) !important;
+  color: #FAF6ED !important;
+}
+
+#themeToggleBtn,
+#navUserIcon {
+  color: var(--gold-bright) !important;
+}
+
+.toast {
+  background: rgba(14, 25, 17, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(212, 160, 23, 0.35) !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), 0 0 15px rgba(212,160,23,0.18) !important;
+  color: #FAF6ED !important;
+}

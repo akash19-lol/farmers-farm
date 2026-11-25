@@ -1813,7 +1813,7 @@ function showLiveOrderPopup() {
   const randomCity = cities[Math.floor(Math.random() * cities.length)];
   const randomTime = times[Math.floor(Math.random() * times.length)];
   
-  document.getElementById('liveOrderText').innerHTML = `Someone from <b>${randomCity}</b> bought 7 TEA AM`;
+  document.getElementById('liveOrderText').innerHTML = `Someone from <b>${randomCity}</b> bought <span>7 TEA AM</span>`;
   document.getElementById('liveOrderTime').innerText = randomTime;
   
   // Slide in

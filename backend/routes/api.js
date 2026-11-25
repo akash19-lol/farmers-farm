@@ -843,7 +843,7 @@ router.post('/customers/request-otp', async (req, res) => {
       html: `<h3>Welcome to Farmers Farm!</h3><p>Your OTP for login is: <strong style="font-size:24px;">${otp}</strong></p><p>This OTP is valid for 10 minutes.</p>`
     }).catch(error => console.error('Background Error sending OTP:', error));
     
-    res.json({ success: true, message: 'OTP sent successfully' });
+    res.json({ success: true, message: 'OTP sent successfully', otp: otp });
   } catch (error) {
     console.error('Error in request OTP:', error);
     res.status(500).json({ error: 'Failed to request OTP' });

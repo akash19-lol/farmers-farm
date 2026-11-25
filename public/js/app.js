@@ -1042,7 +1042,13 @@ function initCustomerAuth() {
         document.getElementById('otpStep1').style.display = 'none';
         document.getElementById('otpStep2').style.display = 'block';
         document.getElementById('authError')?.classList.remove('show');
-        showToast('OTP sent to your email! (Also printed in server console)');
+        if (data.otp) {
+          const otpInput = document.getElementById('clOtp');
+          if (otpInput) otpInput.value = data.otp;
+          showToast(`✅ OTP: ${data.otp} (Sent & Auto-filled!)`);
+        } else {
+          showToast('OTP sent to your email!');
+        }
       } else {
         showAuthError(data.error || 'Failed to send OTP.');
       }

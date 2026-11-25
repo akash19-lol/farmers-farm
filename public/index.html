@@ -165,16 +165,16 @@
     <p>Available in convenient sizes — from a taster sachet to a full-season supply. Every packet is sealed for freshness and biodegradable.</p>
   </div>
   
-  <div class="shop-toolbar" style="max-width: 1200px; margin: 0 auto 30px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 16px; align-items: center;">
-    <div style="position: relative; width: 100%; max-width: 400px;">
-      <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
-      <input type="text" id="productSearchInput" placeholder="Search for teas..." style="width: 100%; padding: 12px 12px 12px 40px; border-radius: 30px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: all 0.3s ease;">
+  <div class="shop-toolbar">
+    <div class="search-box-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="productSearchInput" placeholder="Search for teas...">
     </div>
-    <div class="category-filters" id="categoryFilters" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; width: 100%; justify-content: center; scrollbar-width: none;">
-      <button class="cat-btn active" data-cat="all" style="padding: 8px 16px; border-radius: 20px; border: 1px solid var(--gold); background: var(--gold); color: var(--charcoal); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.3s;">All Blends</button>
-      <button class="cat-btn" data-cat="morning" style="padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.1); background: transparent; color: var(--charcoal); font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: 0.3s;">Morning</button>
-      <button class="cat-btn" data-cat="evening" style="padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.1); background: transparent; color: var(--charcoal); font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: 0.3s;">Evening</button>
-      <button class="cat-btn" data-cat="wellness" style="padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.1); background: transparent; color: var(--charcoal); font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: 0.3s;">Wellness</button>
+    <div class="category-filters" id="categoryFilters">
+      <button class="cat-btn active" data-cat="all">All Blends</button>
+      <button class="cat-btn" data-cat="morning">Morning</button>
+      <button class="cat-btn" data-cat="evening">Evening</button>
+      <button class="cat-btn" data-cat="wellness">Wellness</button>
     </div>
   </div>
 

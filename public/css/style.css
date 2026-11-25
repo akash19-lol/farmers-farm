@@ -1513,3 +1513,100 @@ footer p { font-size: 12px; }
 .user-dropdown-item.danger:hover {
   background: rgba(231, 76, 60, 0.1);
 }
+
+/* ── PRODUCT SEARCH & FILTER TOOLBAR (Dark Luxe Glass) ── */
+.shop-toolbar {
+  max-width: 1200px;
+  margin: 0 auto 36px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+.search-box-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+}
+
+.search-box-wrap .search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#productSearchInput {
+  width: 100%;
+  padding: 13px 18px 13px 46px;
+  border-radius: 30px;
+  border: 1px solid rgba(212, 160, 23, 0.3) !important;
+  background: rgba(18, 30, 21, 0.88) !important;
+  color: #FAF6ED !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  outline: none;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.45);
+  transition: all 0.3s ease;
+  -webkit-appearance: none;
+}
+
+#productSearchInput:focus,
+#productSearchInput:hover {
+  border-color: var(--gold-light) !important;
+  background: rgba(22, 38, 26, 0.96) !important;
+  box-shadow: 0 0 25px rgba(212, 160, 23, 0.35), 0 8px 30px rgba(0,0,0,0.5) !important;
+  color: #FFFFFF !important;
+}
+
+#productSearchInput::placeholder {
+  color: rgba(226, 218, 203, 0.5) !important;
+}
+
+/* Category Filter Buttons */
+.category-filters {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+  width: 100%;
+  justify-content: center;
+  scrollbar-width: none;
+}
+.category-filters::-webkit-scrollbar { display: none; }
+
+.cat-btn {
+  padding: 9px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(212, 160, 23, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  color: #FAF6ED;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.cat-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+  background: rgba(212, 160, 23, 0.15);
+  transform: translateY(-1px);
+}
+
+.cat-btn.active {
+  background: var(--gold) !important;
+  border-color: var(--gold) !important;
+  color: #0C140E !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 18px rgba(212, 160, 23, 0.4) !important;
+  transform: translateY(-1px);
+}

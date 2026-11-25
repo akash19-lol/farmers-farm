@@ -175,12 +175,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       currentCategory = btn.getAttribute('data-cat');
       document.querySelectorAll('.cat-btn').forEach(b => {
         b.classList.remove('active');
-        b.style.background = 'transparent';
-        b.style.borderColor = 'rgba(0,0,0,0.1)';
+        b.style.background = '';
+        b.style.borderColor = '';
+        b.style.color = '';
       });
       btn.classList.add('active');
-      btn.style.background = 'var(--gold)';
-      btn.style.borderColor = 'var(--gold)';
       renderProducts();
     });
   });

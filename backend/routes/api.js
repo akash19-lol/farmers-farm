@@ -1060,13 +1060,11 @@ router.post('/customers/request-otp', otpRequestLimiter, async (req, res) => {
     const isTimeoutOrBlocked = error?.code === 'ETIMEDOUT' || error?.code === 'ECONNECTION' || errMsg.includes('timeout') || errMsg.includes('greeting never received');
     if (isTimeoutOrBlocked) {
       return res.status(503).json({
-        error: 'Email delivery timed out (free hosting blocks Gmail SMTP). Please use Password Login or configure BREVO_API_KEY / EMAIL_WEBHOOK_URL.',
-        details: error?.message || String(error)
+        error: 'Email delivery timed out (free hosting blocks Gmail SMTP). Please use Password Login or configure BREVO_API_KEY / EMAIL_WEBHOOK_URL.'
       });
     }
     res.status(500).json({
-      error: 'Failed to send OTP email. Please check your email or use Password login.',
-      details: error?.message || String(error)
+      error: 'Failed to send OTP email. Please check your email or use Password login.'
     });
   }
 });

@@ -105,6 +105,7 @@ async function sendEmail({ to, subject, html, text }) {
     const res = await fetch(process.env.EMAIL_WEBHOOK_URL.trim(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
       body: JSON.stringify({
         to,
         subject,
@@ -112,7 +113,7 @@ async function sendEmail({ to, subject, html, text }) {
         text: text || subject,
         secret: process.env.EMAIL_WEBHOOK_SECRET || ''
       }),
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(18000)
     });
     if (!res.ok) {
       const errText = await res.text().catch(() => '');

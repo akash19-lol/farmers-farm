@@ -5,6 +5,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  color-scheme: dark;
   --green-deep: #1B3A2D;
   --green-mid: #2E5C3F;
   --green-leaf: #4A8C5C;
@@ -24,7 +25,24 @@
   --danger-hover: #C0392B;
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; color-scheme: dark; }
+
+/* Universal dark-theme autofill guard for all Admin inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #122118 inset !important;
+  box-shadow: 0 0 0 1000px #122118 inset !important;
+  -webkit-text-fill-color: #E4EDE7 !important;
+  color: #E4EDE7 !important;
+  caret-color: #E4EDE7 !important;
+  border-color: rgba(201,168,76,0.35) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 
 body {
   font-family: 'Inter', sans-serif;
@@ -418,7 +436,7 @@ body {
   border-radius: 20px;
   width: 90vw; max-width: 520px;
   transform: scale(0.95); transition: transform 0.3s;
-  max-height: 90vh; overflow-y: auto;
+  max-height: 90vh; overflow-y: auto; overflow-x: hidden;
   box-shadow: 0 24px 80px rgba(0,0,0,0.5);
 }
 .modal-overlay.open .modal { transform: scale(1); }
@@ -449,12 +467,28 @@ body {
   font-weight: 600;
 }
 .modal-field input, .modal-field textarea, .modal-field select {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(201,168,76,0.1);
+  width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+  background: rgba(18, 33, 24, 0.92);
+  border: 1px solid rgba(201,168,76,0.18);
   border-radius: 8px; padding: 12px 14px;
-  color: var(--white); font-family: 'Inter', sans-serif;
+  color: var(--mist); font-family: 'Inter', sans-serif;
   font-size: 14px; outline: none;
   transition: border-color 0.3s, box-shadow 0.3s;
+}
+.modal-field input[type="file"] {
+  padding: 8px 10px; font-size: 12px; color: var(--mist);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.modal-field input[type="file"]::file-selector-button {
+  background: rgba(201,168,76,0.18);
+  color: var(--gold-light);
+  border: 1px solid rgba(201,168,76,0.35);
+  border-radius: 6px; padding: 6px 10px;
+  margin-right: 10px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.modal-field input[type="file"]::file-selector-button:hover {
+  background: rgba(201,168,76,0.28);
 }
 .modal-field input:focus, .modal-field textarea:focus, .modal-field select:focus {
   border-color: var(--gold);
@@ -462,16 +496,21 @@ body {
 }
 .modal-field input:-webkit-autofill,
 .modal-field input:-webkit-autofill:hover,
-.modal-field input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px rgba(14,24,17,0.98) inset !important;
+.modal-field input:-webkit-autofill:focus,
+.modal-field input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #122118 inset !important;
+  box-shadow: 0 0 0px 1000px #122118 inset !important;
   -webkit-text-fill-color: #E4EDE7 !important;
-  border-color: rgba(201,168,76,0.3) !important;
+  border-color: rgba(201,168,76,0.35) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 .modal-field textarea { resize: vertical; min-height: 80px; }
-.modal-field select option { background: var(--dark-card-solid); }
+.modal-field select option { background: var(--dark-card-solid); color: var(--mist); }
 .modal-field .field-row {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px;
+}
+.modal-field .field-row > div {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
 }
 .modal-footer {
   padding: 16px 24px; border-top: 1px solid rgba(201,168,76,0.08);

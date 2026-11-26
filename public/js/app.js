@@ -414,7 +414,7 @@ function updateCartUI() {
         <img src="${item.image || '/images/pouch.png'}" class="cart-item-image" alt="${item.name}" />
         <div class="cart-item-info">
           <div class="cart-item-name">${item.name}</div>
-          <div class="cart-item-name" style="font-size: 13px; color: var(--gold-dark); margin-top: 4px;">Size: ${item.size || item.weight}</div>
+          <div class="cart-item-name" style="font-size: 13px; color: var(--gold); margin-top: 4px;">Size: ${item.size || item.weight}</div>
           <div class="cart-item-price">₹${(item.price * item.qty).toLocaleString('en-IN')}</div>
         </div>
         <div class="cart-item-qty">
@@ -880,7 +880,7 @@ window.openMyOrdersModal = async function() {
       <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px;">
         <div style="display:flex; justify-content:space-between; margin-bottom: 10px;">
           <strong style="color:var(--gold); font-size:14px;">${o.id}</strong>
-          <span style="background:var(--black); padding: 2px 8px; border-radius: 4px; font-size: 11px; color: var(--mist);">${o.status || 'Pending'}</span>
+          <span style="background:#0C140E; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: var(--mist);">${o.status || 'Pending'}</span>
         </div>
         <div style="font-size: 13px; color: var(--mist); margin-bottom: 8px;">Date: ${o.date}</div>
         <div style="font-size: 14px; color: var(--white); margin-bottom: 15px;">
@@ -888,7 +888,7 @@ window.openMyOrdersModal = async function() {
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div style="font-weight: 600; color: var(--white);">Total: ₹${o.total.toLocaleString('en-IN')}</div>
-          <button onclick="reorderItems('${o.id}')" style="background: var(--gold); color: var(--black); border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">🔄 Re-order</button>
+          <button onclick="reorderItems('${o.id}')" style="background: var(--gold); color: #0C140E; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">🔄 Re-order</button>
         </div>
       </div>
     `).join('');
@@ -1046,17 +1046,23 @@ function initCustomerAuth() {
   document.getElementById('sendOtpBtn')?.addEventListener('click', async () => {
     const email = document.getElementById('clEmail').value.trim().toLowerCase();
     if (!email) return showAuthError('Please enter your email first.');
-    
+    document.getElementById('authError')?.classList.remove('show');
+
     const sendBtn = document.getElementById('sendOtpBtn');
     sendBtn.textContent = 'Sending...';
     sendBtn.disabled = true;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch('/api/customers/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
+        signal: controller.signal
       });
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      const data = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {};
       if (res.ok && data.success) {
         document.getElementById('otpStep1').style.display = 'none';
         document.getElementById('otpStep2').style.display = 'block';
@@ -1068,11 +1074,16 @@ function initCustomerAuth() {
         }
         showToast('📩 OTP sent to your email! Please check your inbox.');
       } else {
-        showAuthError(data.error || 'Failed to send OTP.');
+        showAuthError(data.error || 'Could not send OTP right now. Please try Password Login or Google Sign-In.');
       }
     } catch(err) {
-      showAuthError('Server error. Try again.');
+      if (err && err.name === 'AbortError') {
+        showAuthError('OTP request timed out. Please use "Or login with Password instead" or Google Sign-In.');
+      } else {
+        showAuthError('Server error. Try again or use Password Login.');
+      }
     } finally {
+      clearTimeout(timeoutId);
       sendBtn.textContent = 'Send OTP →';
       sendBtn.disabled = false;
     }
@@ -1278,7 +1289,7 @@ async function initGoogleSignIn() {
         </button>
       `;
       document.getElementById('googleSetupFallbackBtn')?.addEventListener('click', () => {
-        showAuthError('Google Client ID configure karna baaki hai: backend/.env mein GOOGLE_CLIENT_ID add karein (Google Cloud Console → Credentials).');
+        showAuthError('Google Sign-In is not enabled on the server yet. Please sign in with Password or OTP.');
       });
     }
   } catch (err) {

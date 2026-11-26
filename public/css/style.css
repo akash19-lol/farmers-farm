@@ -5,6 +5,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root, [data-theme="dark"] {
+  color-scheme: dark;
   --green-deep: #0C160F;       /* Deep obsidian forest */
   --green-mid:  #182A1D;       /* Rich botanical emerald */
   --green-leaf: #3D6B4F;       /* Vibrant leaf accent */
@@ -30,6 +31,7 @@
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --green-deep: #2C4A35;
   --green-mid:  #3D6B4F;
   --green-leaf: #5A9470;
@@ -1616,6 +1618,7 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active,
+input:autofill,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #132217 inset !important;

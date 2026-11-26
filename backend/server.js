@@ -9,6 +9,7 @@ const { db } = require('./firebase');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(cookieParser());
 const PORT = process.env.PORT || 3000;
 
@@ -129,9 +130,12 @@ app.get('/blogs', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/blog.html'));
 });
 
-// Catch-all route to serve the frontend
+// Catch-all route to serve the frontend (do not mask missing static assets as HTML)
 app.use((req, res, next) => {
   if (req.path.startsWith('/api')) return next();
+  if (/\.(png|jpg|jpeg|webp|gif|svg|ico|css|js|map|json|woff2?)$/i.test(req.path) || req.path.startsWith('/images/') || req.path.startsWith('/uploads/')) {
+    return res.status(404).end();
+  }
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 

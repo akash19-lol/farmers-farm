@@ -429,7 +429,7 @@ async function renderOrders() {
 
     const statusOptions = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
     const statusSelect = `
-      <select onchange="updateOrderStatus('${o.id}', this.value)" style="margin-left: 10px; padding: 4px; border-radius: 4px; border: 1px solid var(--gold); background: var(--black); color: var(--gold);">
+      <select onchange="updateOrderStatus('${o.id}', this.value)" style="margin-left: 10px; padding: 4px; border-radius: 4px; border: 1px solid var(--gold); background: #142217; color: var(--gold);">
         ${statusOptions.map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
       </select>
     `;

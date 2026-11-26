@@ -35,14 +35,141 @@ const reviewUpload = multer({
 // OTP Storage (Email -> { otp, expiresAt })
 const otpStorage = new Map();
 
-// NodeMailer Setup
+// NodeMailer SMTP Setup (strict timeouts so blocked free-tier SMTP never hangs forever)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  connectionTimeout: 7000,
+  greetingTimeout: 7000,
+  socketTimeout: 9000
 });
+
+/**
+ * Send transactional emails over HTTPS APIs first (required on Render free tier where
+ * outbound SMTP ports 25/465/587 are blocked), falling back to Nodemailer SMTP locally.
+ */
+async function sendEmail({ to, subject, html, text }) {
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_USER || 'noreply@farmersfarm.in').trim();
+
+  if (process.env.BREVO_API_KEY) {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY.trim()
+      },
+      body: JSON.stringify({
+        sender: { name: 'Farmers Farm', email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: text || subject
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Brevo API error (${res.status}): ${errText}`);
+    }
+    return 'brevo';
+  }
+
+  if (process.env.RESEND_API_KEY) {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY.trim()}`
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM || `Farmers Farm <onboarding@resend.dev>`,
+        to: [to],
+        subject,
+        html,
+        text: text || subject
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Resend API error (${res.status}): ${errText}`);
+    }
+    return 'resend';
+  }
+
+  if (process.env.EMAIL_WEBHOOK_URL) {
+    const res = await fetch(process.env.EMAIL_WEBHOOK_URL.trim(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to,
+        subject,
+        html,
+        text: text || subject,
+        secret: process.env.EMAIL_WEBHOOK_SECRET || ''
+      }),
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Email webhook error (${res.status}): ${errText}`);
+    }
+    const webhookData = await res.json().catch(() => null);
+    if (webhookData && webhookData.ok === false) {
+      throw new Error(webhookData.error || 'Email webhook rejected request');
+    }
+    return 'webhook';
+  }
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('Email credentials are not configured on server.');
+  }
+
+  await transporter.sendMail({
+    from: `"Farmers Farm" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+    text
+  });
+  return 'smtp';
+}
+
+/**
+ * Upload an image buffer to Cloudinary first, falling back to persistent inline data URL
+ * on ephemeral cloud hosts (for smaller images) or local disk for development.
+ */
+async function uploadImageAsset(file, folder = 'farmers-farm', localSubdir = 'images/uploads') {
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream({ folder }, (error, uploadResult) => {
+        if (uploadResult) resolve(uploadResult);
+        else reject(error);
+      });
+      stream.end(file.buffer);
+    });
+    if (result && result.secure_url) {
+      return result.secure_url;
+    }
+  } catch (err) {
+    console.warn(`Cloudinary upload warning (${folder}):`, err?.message || err);
+  }
+
+  // On Render's ephemeral disk, inline small images (<650KB) as data URIs so they persist across redeploys
+  if (process.env.RENDER && file.buffer && file.buffer.length <= 650 * 1024 && file.mimetype) {
+    return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+  }
+
+  const uploadsDir = path.join(__dirname, '../../public', localSubdir);
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+  const safeName = `${Date.now()}-${(file.originalname || 'upload.png').replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  fs.writeFileSync(path.join(uploadsDir, safeName), file.buffer);
+  return `/${localSubdir.replace(/\\/g, '/')}/${safeName}`;
+}
 
 // Google Auth Setup (dynamically reads env so runtime updates work cleanly)
 function getGoogleClientId() {
@@ -73,20 +200,19 @@ const sendOrderEmail = async (toEmail, subject, text) => {
     return;
   }
   try {
-    // Format text to HTML to avoid Spam filters
     const htmlContent = text.replace(/\n/g, '<br>');
-    await transporter.sendMail({
-      from: `"Farmers Farm" <${process.env.EMAIL_USER}>`,
+    const via = await sendEmail({
       to: toEmail,
-      subject: subject,
+      subject,
       html: `<div style="font-family: sans-serif; padding: 20px; color: #333;">
               <h2 style="color: #2D5A27;">Farmers Farm</h2>
               <p>${htmlContent}</p>
-             </div>`
+             </div>`,
+      text
     });
-    console.log(`✉️ [EMAIL SENT] Successfully sent to ${toEmail}`);
+    console.log(`✉️ [EMAIL SENT via ${via}] Successfully sent to ${toEmail}`);
   } catch (err) {
-    console.error(`✉️ [EMAIL FAILED] Could not send to ${toEmail}:`, err);
+    console.error(`✉️ [EMAIL FAILED] Could not send to ${toEmail}:`, err?.message || err);
   }
 };
 
@@ -272,36 +398,12 @@ router.get('/products', async (req, res) => {
 router.post('/products', verifyAdmin, upload.single('image'), async (req, res) => {
   const { name, weight, price, note, popular } = req.body;
   let image = '/images/pouch.png';
-  
-  if (req.file) {
-    let uploaded = false;
-    try {
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream({ folder: 'farmers-farm' }, (error, result) => {
-          if (result) resolve(result);
-          else reject(error);
-        });
-        stream.end(req.file.buffer);
-      });
-      if (result && result.secure_url) {
-        image = result.secure_url;
-        uploaded = true;
-      }
-    } catch (err) {
-      console.warn('Cloudinary upload warning:', err.message);
-    }
 
-    if (!uploaded) {
-      try {
-        const uploadsDir = path.join(__dirname, '../../public/images/uploads');
-        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-        const safeName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        fs.writeFileSync(path.join(uploadsDir, safeName), req.file.buffer);
-        image = `/images/uploads/${safeName}`;
-        console.log(`💾 Saved product image locally: ${image}`);
-      } catch (localErr) {
-        console.error('Local save error:', localErr);
-      }
+  if (req.file) {
+    try {
+      image = await uploadImageAsset(req.file, 'farmers-farm', 'images/uploads');
+    } catch (uploadErr) {
+      console.error('Product image upload error:', uploadErr);
     }
   }
 
@@ -334,34 +436,10 @@ router.put('/products/:id', verifyAdmin, upload.single('image'), async (req, res
   };
 
   if (req.file) {
-    let uploaded = false;
     try {
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream({ folder: 'farmers-farm' }, (error, result) => {
-          if (result) resolve(result);
-          else reject(error);
-        });
-        stream.end(req.file.buffer);
-      });
-      if (result && result.secure_url) {
-        updateData.image = result.secure_url;
-        uploaded = true;
-      }
-    } catch (err) {
-      console.warn('Cloudinary upload warning:', err.message);
-    }
-
-    if (!uploaded) {
-      try {
-        const uploadsDir = path.join(__dirname, '../../public/images/uploads');
-        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-        const safeName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        fs.writeFileSync(path.join(uploadsDir, safeName), req.file.buffer);
-        updateData.image = `/images/uploads/${safeName}`;
-        console.log(`💾 Saved updated product image locally: ${updateData.image}`);
-      } catch (localErr) {
-        console.error('Local save error:', localErr);
-      }
+      updateData.image = await uploadImageAsset(req.file, 'farmers-farm', 'images/uploads');
+    } catch (uploadErr) {
+      console.error('Product image update error:', uploadErr);
     }
   }
 
@@ -717,34 +795,11 @@ router.post('/products/:id/reviews', reviewUpload.single('photo'), async (req, r
     };
 
     if (req.file) {
-      let uploaded = false;
       try {
-        const result = await new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream({ folder: 'farmers-farm/reviews' }, (error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          });
-          stream.end(req.file.buffer);
-        });
-        if (result && result.secure_url) {
-          reviewData.photoUrl = result.secure_url;
-          uploaded = true;
-        }
-      } catch (err) {
-        console.warn('Cloudinary Review Upload Warning:', err.message);
-      }
-
-      if (!uploaded) {
-        try {
-          const uploadsDir = path.join(__dirname, '../../public/uploads/reviews');
-          if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-          const safeName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-          fs.writeFileSync(path.join(uploadsDir, safeName), req.file.buffer);
-          reviewData.photoUrl = `/uploads/reviews/${safeName}`;
-        } catch (localErr) {
-          console.error('Local Review Upload Error:', localErr);
-          return res.status(500).json({ error: 'Image upload failed.' });
-        }
+        reviewData.photoUrl = await uploadImageAsset(req.file, 'farmers-farm/reviews', 'uploads/reviews');
+      } catch (uploadErr) {
+        console.error('Review Upload Error:', uploadErr);
+        return res.status(500).json({ error: 'Image upload failed.' });
       }
     }
 
@@ -967,17 +1022,19 @@ router.post('/customers/login', async (req, res) => {
 // --- CUSTOMER AUTH: OTP ---
 router.post('/customers/request-otp', otpRequestLimiter, async (req, res) => {
   const email = (req.body.email || '').trim().toLowerCase();
-  if (!email) return res.status(400).json({ error: 'Email is required' });
-  
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address' });
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStorage.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
-  console.log(`🔑 [CUSTOMER OTP] For '${email}': ${otp}`);
+  console.log(`🔑 [CUSTOMER OTP] Generated for '${email}'`);
 
   try {
-    await transporter.sendMail({
-      from: `"Farmers Farm" <${process.env.EMAIL_USER}>`,
+    const via = await sendEmail({
       to: email,
       subject: `${otp} is your Farmers Farm verification code`,
+      text: `Your Farmers Farm OTP is ${otp}. Valid for 10 minutes.`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #0C160F; color: #FAF6ED; border-radius: 12px; border: 1px solid rgba(212,160,23,0.3); text-align: center;">
           <h2 style="color: #D4A017; font-size: 24px; margin: 0 0 8px; letter-spacing: 1.5px; text-transform: uppercase;">Farmers Farm</h2>
@@ -993,12 +1050,19 @@ router.post('/customers/request-otp', otpRequestLimiter, async (req, res) => {
         </div>
       `
     });
-    
+    console.log(`✅ OTP email sent to '${email}' via ${via}`);
     // Security: Do NOT return the OTP in the API response
     res.json({ success: true, message: 'OTP sent to your email successfully' });
   } catch (error) {
-    console.error('Error in request OTP:', error);
-    res.status(500).json({ error: 'Failed to send OTP email. Please ensure your email address is correct.' });
+    console.error('Error in request OTP:', error?.message || error);
+    const errMsg = String(error?.message || '').toLowerCase();
+    const isTimeoutOrBlocked = error?.code === 'ETIMEDOUT' || error?.code === 'ECONNECTION' || errMsg.includes('timeout') || errMsg.includes('greeting never received');
+    if (isTimeoutOrBlocked) {
+      return res.status(503).json({
+        error: 'Email delivery timed out (free hosting blocks Gmail SMTP). Please use Password Login or configure BREVO_API_KEY / EMAIL_WEBHOOK_URL.'
+      });
+    }
+    res.status(500).json({ error: 'Failed to send OTP email. Please check your email or use Password login.' });
   }
 });
 
@@ -1089,9 +1153,12 @@ router.post('/customers/google-login', async (req, res) => {
 });
 
 // --- CUSTOMER PROFILE & WISHLIST ---
-router.post('/customers/:email/wishlist', async (req, res) => {
+router.post('/customers/:email/wishlist', verifyCustomer, async (req, res) => {
   const { wishlist } = req.body;
   const email = req.params.email.toLowerCase();
+  if (!req.isAdmin && req.customer?.email !== email) {
+    return res.status(403).json({ error: 'Forbidden.' });
+  }
   try {
     const snapshot = await db.collection('customers').where('email', '==', email).get();
     if (snapshot.empty) return res.status(404).json({ error: 'Customer not found' });

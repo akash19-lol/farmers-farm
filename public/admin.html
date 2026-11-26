@@ -9,7 +9,7 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/admin.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -142,9 +142,9 @@
       <div class="panel">
         <div class="panel-header"><h3 class="panel-title">Add New Promo</h3></div>
         <div class="panel-body">
-          <form id="promoForm" style="display:flex; gap:10px; align-items:flex-end;">
-            <div style="flex:1;"><label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;color:rgba(228,237,231,0.6);">Code (e.g. FFM10)</label><input type="text" id="promoCode" required style="width:100%;padding:8px;border:1px solid rgba(201,168,76,0.2);border-radius:4px;background:rgba(255,255,255,0.05);color:#E4EDE7;outline:none;"></div>
-            <div style="flex:1;"><label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;color:rgba(228,237,231,0.6);">Discount Percentage (%)</label><input type="number" id="promoDiscount" required min="1" max="100" style="width:100%;padding:8px;border:1px solid rgba(201,168,76,0.2);border-radius:4px;background:rgba(255,255,255,0.05);color:#E4EDE7;outline:none;"></div>
+          <form id="promoForm" autocomplete="off" style="display:flex; gap:10px; align-items:flex-end;">
+            <div style="flex:1;"><label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;color:rgba(228,237,231,0.6);">Code (e.g. FFM10)</label><input type="text" id="promoCode" autocomplete="off" required style="width:100%;padding:8px;border:1px solid rgba(201,168,76,0.2);border-radius:4px;background:rgba(18,33,24,0.92);color:#E4EDE7;outline:none;"></div>
+            <div style="flex:1;"><label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;color:rgba(228,237,231,0.6);">Discount Percentage (%)</label><input type="number" id="promoDiscount" autocomplete="off" required min="1" max="100" style="width:100%;padding:8px;border:1px solid rgba(201,168,76,0.2);border-radius:4px;background:rgba(18,33,24,0.92);color:#E4EDE7;outline:none;"></div>
             <button type="submit" class="btn-save" style="padding:10px 20px;">Create Promo</button>
           </form>
         </div>
@@ -181,7 +181,7 @@
           <h1>Blog Posts</h1>
           <p>Manage your SEO-optimized blog content</p>
         </div>
-        <button class="action-btn" onclick="openBlogModal()">+ Write New Post</button>
+        <button class="btn-add" onclick="openBlogModal()">+ Write New Post</button>
       </div>
       <div class="panel">
         <div class="panel-body">
@@ -287,18 +287,19 @@
 <div class="modal-overlay" id="productModal">
   <div class="modal">
     <div class="modal-header"><h3 id="modalTitle">Add New Product</h3><button class="modal-close" id="modalClose">✕</button></div>
-    <form id="productForm">
+    <form id="productForm" autocomplete="off">
       <div class="modal-body">
-        <div class="modal-field"><div class="field-row"><div><label>Product Image</label><input type="file" id="pImage" accept="image/*" required></div><div><label>Weight</label><input type="text" id="pWeight" placeholder="e.g. 250g" required></div></div></div>
-        <div class="modal-field"><label>Product Name</label><input type="text" id="pName" placeholder="e.g. Classic Pack" required></div>
-        <div class="modal-field"><div class="field-row"><div><label>Price (₹)</label><input type="number" id="pPrice" placeholder="620" required min="1"></div><div><label>Popular?</label><select id="pPopular"><option value="no">No</option><option value="yes">Yes – Best Seller</option></select></div></div></div>
-        <div class="modal-field"><label>Description / Note</label><textarea id="pNote" placeholder="e.g. ~125 cups · Most popular choice"></textarea></div>
+        <div class="modal-field"><div class="field-row"><div><label>Product Image</label><input type="file" id="pImage" accept="image/*" required></div><div><label>Weight</label><input type="text" id="pWeight" name="product_weight_ff" autocomplete="off" placeholder="e.g. 250g" required></div></div></div>
+        <div class="modal-field"><label>Product Name</label><input type="text" id="pName" name="product_name_ff" autocomplete="off" placeholder="e.g. Classic Pack" required></div>
+        <div class="modal-field"><div class="field-row"><div><label>Price (₹)</label><input type="number" id="pPrice" name="product_price_ff" autocomplete="off" placeholder="620" required min="1"></div><div><label>Popular?</label><select id="pPopular"><option value="no">No</option><option value="yes">Yes – Best Seller</option></select></div></div></div>
+        <div class="modal-field"><label>Description / Note</label><textarea id="pNote" autocomplete="off" placeholder="e.g. ~125 cups · Most popular choice"></textarea></div>
       </div>
       <div class="modal-footer"><button type="button" class="btn-cancel" id="modalCancel">Cancel</button><button type="submit" class="btn-save">Save Product</button></div>
     </form>
   </div>
 </div>
 
-<script src="js/admin.js?v=4"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){for(let r of rs)r.unregister();});}if('caches' in window){caches.keys().then(function(ns){for(let n of ns)caches.delete(n);});}</script>
+<script src="js/admin.js?v=5"></script>
 </body>
 </html>

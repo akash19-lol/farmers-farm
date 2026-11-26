@@ -9,7 +9,7 @@
 <!-- SEO_META_TAGS -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍵</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/style.css?v=12">
+<link rel="stylesheet" href="/css/style.css?v=14">
 <link rel="stylesheet" href="/css/3d-effects.css?v=1">
 <style>
   body { background: #14261c; color: var(--white); font-family: 'Inter', sans-serif; padding-top: 72px; }
@@ -74,6 +74,19 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', async () => {
+    const savedTheme = localStorage.getItem('ff_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+      themeBtn.innerHTML = savedTheme === 'light' ? '🌙' : '☀️';
+      themeBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('ff_theme', next);
+        themeBtn.innerHTML = next === 'light' ? '🌙' : '☀️';
+      });
+    }
     // If SSR content exists, we are on a specific post page.
     const ssrContent = document.querySelector('.blog-ssr-container');
     if (!ssrContent) {

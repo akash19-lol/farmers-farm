@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Cart – Farmers Farm</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=14">
 <link rel="stylesheet" href="css/3d-effects.css?v=1">
 <!-- Google Identity Services for Google Login -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -25,7 +25,7 @@
   <div class="nav-right">
     <button id="themeToggleBtn" title="Toggle Theme" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--gold-bright); margin-right:12px;">☀️</button>
     <div class="nav-user" id="navUserBtn" style="position:relative; cursor:pointer;" title="Account" onclick="event.stopPropagation(); toggleUserDropdown();">
-      <div id="navUserIcon" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:20px; color:var(--green-deep);">👤</div>
+      <div id="navUserIcon" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; font-size:20px; color:var(--mist);">👤</div>
       <div class="user-dropdown" id="userDropdown" onclick="event.stopPropagation();">
         <div id="dropdownLoggedOutView">
           <button class="user-dropdown-item" onclick="window.location.href='/login.html';">🔐 Login / Sign Up</button>
@@ -55,7 +55,7 @@
     </div>
     
     <div class="cart-footer" style="padding: 30px; background: rgba(10,18,12,0.85); border-top: 1px solid rgba(212,160,23,0.18);">
-      <div class="promo-section" style="margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 24px; max-width: 300px;">
+      <div class="promo-section" style="margin-bottom: 24px; border-bottom: 1px solid rgba(212,160,23,0.18); padding-bottom: 24px; max-width: 300px;">
         <div style="display:flex; gap:8px;">
           <input type="text" id="promoInputCart" placeholder="Promo code" style="flex:1; padding:10px; border-radius:6px; border:1px solid rgba(212,160,23,0.25); background:rgba(12,20,14,0.8); color:#FAF6ED; text-transform:uppercase;">
           <button id="applyPromoBtnCart" style="padding:0 16px; border-radius:6px; border:none; background:var(--gold); color:#0C140E; font-weight:700; cursor:pointer;">Apply</button>
@@ -301,7 +301,7 @@
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){for(let r of rs)r.unregister();});}if('caches' in window){caches.keys().then(function(ns){for(let n of ns)caches.delete(n);});}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
 <script src="js/effects3d.js?v=1"></script>
-<script src="js/app.js?v=10"></script>
+<script src="js/app.js?v=12"></script>
 <script>
   // Ensure the cart UI is updated correctly on load
   document.addEventListener('DOMContentLoaded', () => {

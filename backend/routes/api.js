@@ -104,10 +104,9 @@ const upload = multer({
   }
 });
 
-// Initialize Razorpay
+// Initialize Razorpay (optional - COD mode works without keys)
 if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-  if (process.env.NODE_ENV === 'production') throw new Error('Razorpay keys are missing.');
-  console.warn('WARNING: Razorpay keys are missing.');
+  console.warn('WARNING: Razorpay keys are missing. Running in COD-only mode.');
 }
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'dummy',

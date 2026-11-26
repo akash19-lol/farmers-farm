@@ -460,6 +460,14 @@ body {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
 }
+.modal-field input:-webkit-autofill,
+.modal-field input:-webkit-autofill:hover,
+.modal-field input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(14,24,17,0.98) inset !important;
+  -webkit-text-fill-color: #E4EDE7 !important;
+  border-color: rgba(201,168,76,0.3) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 .modal-field textarea { resize: vertical; min-height: 80px; }
 .modal-field select option { background: var(--dark-card-solid); }
 .modal-field .field-row {

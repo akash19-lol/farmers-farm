@@ -57,16 +57,27 @@ function saveCart(c) {
   }
 }
 
-async function saveOrder(order) {
-  try {
-    await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-  } catch (err) {
-    console.error(err);
+function formatOrderItem(item) {
+  if (typeof item === 'string') return item;
+  if (item && typeof item === 'object') {
+    const w = item.weight || item.size || '';
+    const q = item.qty || item.quantity || 1;
+    return `${w ? w + ' ' : ''}${item.name || 'Product'} x${q}`;
   }
+  return '';
+}
+
+async function saveOrder(order) {
+  const res = await fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Could not place order. Please try again.');
+  }
+  return data.order || order;
 }
 
 async function saveFeedback(feedback) {
@@ -556,6 +567,52 @@ document.getElementById('getLocationBtn')?.addEventListener('click', () => {
   }
 });
 
+const CHECKOUT_BTN_DEFAULT_HTML = '📦 Place Order →';
+
+function resetCheckoutButton(btn) {
+  if (!btn) return;
+  btn.innerHTML = CHECKOUT_BTN_DEFAULT_HTML;
+  btn.disabled = false;
+}
+
+function buildOrderPayload({ customer, address, city, pin, lat, lng, baseTotal, discountAmount, finalTotal, paymentMethod, paymentId }) {
+  const safeName = (customer.name || (customer.email ? customer.email.split('@')[0] : 'Customer')).trim();
+  return {
+    id: 'ORD-' + Date.now().toString(36).toUpperCase(),
+    date: new Date().toLocaleString('en-IN'),
+    items: cart.map(c => ({
+      id: c.id || '',
+      name: c.name || 'Product',
+      weight: c.size || c.weight || '',
+      price: Number(c.price) || 0,
+      qty: Number(c.qty) || 1
+    })),
+    subtotal: baseTotal,
+    promoCode: appliedPromo ? appliedPromo.promoCode : null,
+    discount: Math.round(discountAmount),
+    total: Math.round(finalTotal),
+    paymentMethod,
+    paymentId: paymentId || null,
+    customer: {
+      name: safeName,
+      email: customer.email,
+      phone: customer.phone || ''
+    },
+    shipping: { address, city, pin, lat, lng }
+  };
+}
+
+async function completeOrderPlacement(order, btn) {
+  const savedOrder = await saveOrder(order);
+  cart = [];
+  appliedPromo = null;
+  saveCart(cart);
+  updateCartUI();
+  closeAddressModal();
+  resetCheckoutButton(btn);
+  showCheckoutSuccess(savedOrder);
+}
+
 // Finalize Order – COD / Online Payment
 document.getElementById('checkoutAddressForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -620,30 +677,17 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
         });
         const verifyData = await verifyRes.json();
         if (verifyData.success) {
-          const order = {
-            id: 'ORD-' + Date.now().toString(36).toUpperCase(),
-            date: new Date().toLocaleString('en-IN'),
-            items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
-            subtotal: baseTotal,
-            promoCode: appliedPromo ? appliedPromo.promoCode : null,
-            discount: Math.round(discountAmount),
-            total: Math.round(finalTotal),
+          const order = buildOrderPayload({
+            customer, address, city, pin, lat, lng,
+            baseTotal, discountAmount, finalTotal,
             paymentMethod: 'Online Payment (Demo)',
-            paymentId: demoPaymentId,
-            customer: { name: customer.name, email: customer.email, phone: customer.phone },
-            shipping: { address, city, pin, lat, lng }
-          };
-          await saveOrder(order);
-          cart = [];
-          saveCart(cart);
-          updateCartUI();
-          closeAddressModal();
-          showCheckoutSuccess(order);
+            paymentId: demoPaymentId
+          });
+          await completeOrderPlacement(order, btn);
           return;
         } else {
           showToast('Payment verification failed.');
-          btn.innerHTML = 'Place Order';
-          btn.disabled = false;
+          resetCheckoutButton(btn);
           return;
         }
       }
@@ -662,41 +706,37 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
           contact: customer.phone
         },
         theme: { color: "#2D5A27" },
+        modal: {
+          ondismiss: function () {
+            resetCheckoutButton(btn);
+          }
+        },
         handler: async function (response) {
-          // Verify Payment on Backend
-          btn.innerHTML = 'Verifying Payment...';
-          const verifyRes = await fetch('/api/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(response)
-          });
-          const verifyData = await verifyRes.json();
-          
-          if (verifyData.success) {
-            const order = {
-              id: 'ORD-' + Date.now().toString(36).toUpperCase(),
-              date: new Date().toLocaleString('en-IN'),
-              items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
-              subtotal: baseTotal,
-              promoCode: appliedPromo ? appliedPromo.promoCode : null,
-              discount: Math.round(discountAmount),
-              total: Math.round(finalTotal),
-              paymentMethod: 'Online Payment',
-              paymentId: response.razorpay_payment_id,
-              customer: { name: customer.name, email: customer.email, phone: customer.phone },
-              shipping: { address, city, pin, lat, lng }
-            };
+          try {
+            btn.innerHTML = 'Verifying Payment...';
+            const verifyRes = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(response)
+            });
+            const verifyData = await verifyRes.json();
 
-            await saveOrder(order);
-            cart = [];
-            saveCart(cart);
-            updateCartUI();
-            closeAddressModal();
-            showCheckoutSuccess(order);
-          } else {
-            showToast('Payment verification failed.');
-            btn.innerHTML = 'Place Order';
-            btn.disabled = false;
+            if (verifyData.success) {
+              const order = buildOrderPayload({
+                customer, address, city, pin, lat, lng,
+                baseTotal, discountAmount, finalTotal,
+                paymentMethod: 'Online Payment',
+                paymentId: response.razorpay_payment_id
+              });
+              await completeOrderPlacement(order, btn);
+            } else {
+              showToast('Payment verification failed.');
+              resetCheckoutButton(btn);
+            }
+          } catch (handlerErr) {
+            console.error(handlerErr);
+            showToast(handlerErr.message || 'Error finalizing order.');
+            resetCheckoutButton(btn);
           }
         }
       };
@@ -704,39 +744,24 @@ document.getElementById('checkoutAddressForm')?.addEventListener('submit', async
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response) {
         showToast('Payment Failed: ' + response.error.description);
-        btn.innerHTML = 'Place Order';
-        btn.disabled = false;
+        resetCheckoutButton(btn);
       });
       rzp.open();
 
     } else {
       // COD Flow
-      const order = {
-        id: 'ORD-' + Date.now().toString(36).toUpperCase(),
-        date: new Date().toLocaleString('en-IN'),
-        items: cart.map(c => `${c.weight} ${c.name} x${c.qty}`),
-        subtotal: baseTotal,
-        promoCode: appliedPromo ? appliedPromo.promoCode : null,
-        discount: Math.round(discountAmount),
-        total: Math.round(finalTotal),
+      const order = buildOrderPayload({
+        customer, address, city, pin, lat, lng,
+        baseTotal, discountAmount, finalTotal,
         paymentMethod: 'COD',
-        paymentId: null,
-        customer: { name: customer.name, email: customer.email, phone: customer.phone },
-        shipping: { address, city, pin, lat, lng }
-      };
-
-      await saveOrder(order);
-      cart = [];
-      saveCart(cart);
-      updateCartUI();
-      closeAddressModal();
-      showCheckoutSuccess(order);
+        paymentId: null
+      });
+      await completeOrderPlacement(order, btn);
     }
   } catch (err) {
     console.error(err);
     showToast(err.message || 'Error processing order. Please try again.');
-    btn.innerHTML = 'Place Order';
-    btn.disabled = false;
+    resetCheckoutButton(btn);
   }
 });
 
@@ -884,7 +909,7 @@ window.openMyOrdersModal = async function() {
         </div>
         <div style="font-size: 13px; color: var(--mist); margin-bottom: 8px;">Date: ${o.date}</div>
         <div style="font-size: 14px; color: var(--white); margin-bottom: 15px;">
-          ${o.items.join('<br>')}
+          ${(o.items || []).map(formatOrderItem).join('<br>')}
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div style="font-weight: 600; color: var(--white);">Total: ₹${o.total.toLocaleString('en-IN')}</div>
@@ -913,7 +938,8 @@ window.reorderItems = function(orderId) {
   const allProducts = getProducts();
   let addedCount = 0;
   
-  order.items.forEach(itemStr => {
+  (order.items || []).forEach(rawItem => {
+    const itemStr = formatOrderItem(rawItem);
     let qty = 1;
     let namePart = itemStr;
     const qtyMatch = itemStr.match(/(.*)\s+x(\d+)$/);
@@ -1672,7 +1698,7 @@ async function fetchAndRenderMyOrders() {
             </div>
           </div>
           <div style="font-size: 14px; color: var(--white); margin-bottom: 10px; line-height: 1.5;">
-            ${o.items.join('<br>')}
+            ${(o.items || []).map(formatOrderItem).join('<br>')}
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; gap: 10px;">

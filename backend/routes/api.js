@@ -587,6 +587,19 @@ router.get('/orders', verifyAdmin, async (req, res) => {
   }
 });
 
+function resolveServerItemPrice(item, productDoc) {
+  if (!productDoc) return parseFloat(item.price);
+  const basePrice = Number(productDoc.price) || 0;
+  const sizeLabel = String(item.weight || item.size || '').toLowerCase();
+  let multiplier = 1;
+  if (sizeLabel.includes('240 gm')) multiplier = 2.8;
+  else if (sizeLabel.includes('500 gm')) multiplier = 5.5;
+  else if (sizeLabel.includes('1 kg')) multiplier = 10;
+  else if (sizeLabel === '500g') multiplier = 1.9;
+  else if (sizeLabel === '1kg') multiplier = 3.7;
+  return Math.round(basePrice * multiplier);
+}
+
 router.post('/orders', async (req, res) => {
   try {
     const { items, customer, shipping, paymentMethod, paymentId, total, promoCode } = req.body;
@@ -598,25 +611,73 @@ router.post('/orders', async (req, res) => {
     if (!shipping || !shipping.address) {
       return res.status(400).json({ error: 'Shipping address is required.' });
     }
-
-    // 2. Prevent Negative Quantity Exploit
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
     }
 
-    for (const item of items) {
-      const qty = parseInt(item.qty || item.quantity, 10);
+    // Load product catalog for server-side price verification
+    const productsSnap = await db.collection('products').get();
+    const productsMap = new Map();
+    productsSnap.forEach(doc => productsMap.set(doc.id, doc.data()));
+
+    // 2. Validate & normalize items (supports structured item objects and legacy label strings)
+    const normalizedItems = [];
+    for (const rawItem of items) {
+      if (typeof rawItem === 'string') {
+        const match = rawItem.match(/^(.*?)\s+x(\d+)$/i);
+        const label = match ? match[1].trim() : rawItem.trim();
+        const qty = match ? parseInt(match[2], 10) : 1;
+        if (!Number.isInteger(qty) || qty <= 0 || qty > 100) {
+          return res.status(400).json({ error: `Invalid quantity for ${label || 'product'}. Must be between 1 and 100.` });
+        }
+        let matchedProduct = null;
+        for (const p of productsMap.values()) {
+          if (p.name && label.toLowerCase().includes(String(p.name).toLowerCase())) {
+            matchedProduct = p;
+            break;
+          }
+        }
+        const unitPrice = matchedProduct ? resolveServerItemPrice({ weight: label }, matchedProduct) : parseFloat(req.body.subtotal || total || 0) / qty;
+        if (isNaN(unitPrice) || unitPrice < 0) {
+          return res.status(400).json({ error: `Invalid price for ${label || 'product'}.` });
+        }
+        normalizedItems.push({
+          id: '',
+          name: matchedProduct ? String(matchedProduct.name) : label,
+          weight: '',
+          price: unitPrice,
+          qty,
+          display: rawItem.trim()
+        });
+        continue;
+      }
+
+      if (!rawItem || typeof rawItem !== 'object') {
+        return res.status(400).json({ error: 'Invalid item format in order.' });
+      }
+      const qty = parseInt(rawItem.qty || rawItem.quantity, 10);
       if (!Number.isInteger(qty) || qty <= 0 || qty > 100) {
-        return res.status(400).json({ error: `Invalid quantity for ${item.name || 'product'}. Must be between 1 and 100.` });
+        return res.status(400).json({ error: `Invalid quantity for ${rawItem.name || 'product'}. Must be between 1 and 100.` });
       }
-      const price = parseFloat(item.price);
-      if (isNaN(price) || price < 0) {
-        return res.status(400).json({ error: `Invalid price for ${item.name || 'product'}.` });
+      const productDoc = rawItem.id ? productsMap.get(String(rawItem.id)) : null;
+      const verifiedPrice = productDoc ? resolveServerItemPrice(rawItem, productDoc) : parseFloat(rawItem.price);
+      if (isNaN(verifiedPrice) || verifiedPrice < 0) {
+        return res.status(400).json({ error: `Invalid price for ${rawItem.name || 'product'}.` });
       }
+      const weight = String(rawItem.weight || rawItem.size || productDoc?.weight || '').trim();
+      const name = String(rawItem.name || productDoc?.name || 'Product').trim();
+      normalizedItems.push({
+        id: String(rawItem.id || ''),
+        name,
+        weight,
+        price: verifiedPrice,
+        qty,
+        display: `${weight ? weight + ' ' : ''}${name} x${qty}`
+      });
     }
 
     // 3. Server-side Subtotal & Discount Recalculation (Price Manipulation Protection)
-    const calculatedSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) * parseInt(item.qty, 10)), 0);
+    const calculatedSubtotal = normalizedItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
     
     let calculatedDiscount = 0;
     if (promoCode) {
@@ -646,18 +707,27 @@ router.post('/orders', async (req, res) => {
       ? req.body.id 
       : 'ORD-' + crypto.randomInt(10000, 99999);
 
+    const parsedLat = shipping.lat !== '' && shipping.lat !== undefined && shipping.lat !== null ? Number(shipping.lat) : null;
+    const parsedLng = shipping.lng !== '' && shipping.lng !== undefined && shipping.lng !== null ? Number(shipping.lng) : null;
+
+    const sanitizedShipping = {
+      address: String(shipping.address).slice(0, 300),
+      city: String(shipping.city || '').slice(0, 100),
+      pin: String(shipping.pin || '').slice(0, 10)
+    };
+    if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng)) {
+      sanitizedShipping.lat = parsedLat;
+      sanitizedShipping.lng = parsedLng;
+    }
+
     const sanitizedOrder = {
       id: orderId,
       date: new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }),
-      items: items.map(i => ({
-        id: String(i.id || ''),
-        name: String(i.name || ''),
-        weight: String(i.weight || i.size || ''),
-        price: parseFloat(i.price),
-        qty: parseInt(i.qty, 10)
-      })),
+      items: normalizedItems.map(i => i.display),
+      itemDetails: normalizedItems.map(({ id, name, weight, price, qty }) => ({ id, name, weight, price, qty })),
       subtotal: calculatedSubtotal,
       discount: calculatedDiscount,
+      promoCode: promoCode ? String(promoCode).toUpperCase().trim() : null,
       total: expectedTotal,
       paymentMethod: String(paymentMethod || 'Cash on Delivery'),
       paymentId: paymentId ? String(paymentId) : null,
@@ -667,11 +737,7 @@ router.post('/orders', async (req, res) => {
         email: String(customer.email).toLowerCase().trim().slice(0, 100),
         phone: String(customer.phone || '').slice(0, 20)
       },
-      shipping: {
-        address: String(shipping.address).slice(0, 300),
-        city: String(shipping.city || '').slice(0, 100),
-        pin: String(shipping.pin || '').slice(0, 10)
-      },
+      shipping: sanitizedShipping,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
 

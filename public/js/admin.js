@@ -172,6 +172,16 @@ async function loadDashboardData() {
 let salesChartInstance = null;
 let productsChartInstance = null;
 
+function formatAdminOrderItem(rawItem) {
+  if (typeof rawItem === 'string') return rawItem;
+  if (rawItem && typeof rawItem === 'object') {
+    const w = rawItem.weight || rawItem.size || '';
+    const q = rawItem.qty || rawItem.quantity || 1;
+    return `${w ? w + ' ' : ''}${rawItem.name || 'Product'} x${q}`;
+  }
+  return '';
+}
+
 function renderCharts(orders) {
   // 1. Process Data for Sales Chart
   const salesByDate = {};
@@ -196,7 +206,8 @@ function renderCharts(orders) {
   const productCounts = {};
   orders.forEach(o => {
     if (o.items && Array.isArray(o.items)) {
-      o.items.forEach(itemStr => {
+      o.items.forEach(rawItem => {
+        const itemStr = formatAdminOrderItem(rawItem);
         let name = itemStr;
         let qty = 1;
         // Parse 'Product Name x2' format
@@ -460,7 +471,7 @@ async function renderOrders() {
         <div><span class="order-id">${o.id}</span> ${statusSelect}</div>
         <span class="order-date">${o.date}</span>
       </div>
-      <div class="order-items">${o.items.join(' · ')}</div>
+      <div class="order-items">${(o.items || []).map(formatAdminOrderItem).join(' · ')}</div>
       <div class="order-total">Total: ₹${o.total.toLocaleString('en-IN')}</div>
       ${o.customer ? `
         <div class="order-customer">
